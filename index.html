@@ -11,47 +11,45 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
     body { font-family: 'Noto Sans KR', sans-serif; background: radial-gradient(circle at top, #1e293b 0%, #090d16 100%); color: #f8fafc; min-height: 100vh; user-select: none; }
-    .board-frame { background: linear-gradient(145deg, #ecc078 0%, #d49c4b 55%, #b87e2f 100%); box-shadow: 0 18px 40px rgba(0,0,0,0.7), inset 0 2px 4px rgba(255,255,255,0.45); border: 4px solid #7c4f16; }
+    .board-frame { background: linear-gradient(145deg, #ecc078 0%, #d49c4b 55%, #b87e2f 100%); box-shadow: 0 16px 36px rgba(0,0,0,0.7), inset 0 2px 4px rgba(255,255,255,0.45); border: 4px solid #7c4f16; }
     canvas { display: block; width: 100%; height: 100%; touch-action: manipulation; cursor: pointer; }
-    @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.55); } 50% { box-shadow: 0 0 0 7px rgba(245,158,11,0); } }
+    @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.55); } 50% { box-shadow: 0 0 0 6px rgba(245,158,11,0); } }
     .active-turn { animation: pulseGlow 1.8s infinite; border-color: #f59e0b !important; }
     .opt-active { border-color: #f59e0b !important; background: rgba(245,158,11,0.18) !important; color: #fff !important; }
   </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
-  <!-- Top Header (No Deployment Guide) -->
+  <!-- Top Header -->
   <header class="w-full border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-30">
-    <div class="max-w-6xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-xl bg-amber-500 flex items-center justify-center shadow border border-amber-300/40">
-          <span class="w-3.5 h-3.5 rounded-full bg-slate-950 border border-slate-600 -mr-1"></span>
-          <span class="w-3.5 h-3.5 rounded-full bg-white border border-slate-300"></span>
+    <div class="max-w-6xl mx-auto px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center shadow border border-amber-300/40">
+          <span class="w-3 h-3 rounded-full bg-slate-950 border border-slate-600 -mr-1"></span>
+          <span class="w-3 h-3 rounded-full bg-white border border-slate-300"></span>
         </div>
-        <div>
-          <h1 class="text-base sm:text-lg font-black text-amber-400 tracking-tight flex items-center gap-2">
-            클라우드 수담(手談) 바둑
-            <span class="hidden md:inline-block text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">9~19줄 · 귀곡사/사활 자동판정</span>
-          </h1>
-        </div>
+        <h1 class="text-sm sm:text-base font-black text-amber-400 tracking-tight flex items-center gap-2">
+          클라우드 수담(手談) 바둑
+          <span class="hidden md:inline-block text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">9~19줄 · 귀곡사/사활 자동판정</span>
+        </h1>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
         <div class="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1">
           <i class="fa-solid fa-user text-amber-400 text-xs mr-1.5"></i>
-          <input id="nicknameInput" type="text" maxlength="12" placeholder="닉네임" onchange="saveNickname()" class="bg-transparent text-xs font-bold text-white w-24 sm:w-28 outline-none" />
+          <input id="nicknameInput" type="text" maxlength="12" placeholder="닉네임" onchange="saveNickname()" class="bg-transparent text-xs font-bold text-white w-20 sm:w-24 outline-none" />
         </div>
 
-        <div id="connBadge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-800 border border-slate-700 text-slate-300">
+        <div id="connBadge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
           <span id="connDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
           <span id="connText">대기실 연결 중</span>
         </div>
 
-        <button onclick="openRoomModal('local')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-sky-300 transition flex items-center gap-1.5">
-          <i class="fa-solid fa-user-group"></i> <span>1기기 2인 대국</span>
+        <button onclick="openRoomModal('local')" class="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-sky-300 transition flex items-center gap-1">
+          <i class="fa-solid fa-user-group"></i> <span>1기기 2인</span>
         </button>
 
-        <button id="soundBtn" onclick="toggleSound()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-amber-400 transition" title="효과음">
+        <button id="soundBtn" onclick="toggleSound()" class="w-7 h-7 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-amber-400 transition" title="효과음">
           <i id="soundIcon" class="fa-solid fa-volume-high text-xs"></i>
         </button>
       </div>
@@ -59,7 +57,7 @@
   </header>
 
   <!-- VIEW 1: REAL-TIME WAITING ROOM (LOBBY) -->
-  <main id="lobbyView" class="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 py-5 flex flex-col gap-4">
+  <main id="lobbyView" class="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 py-4 flex flex-col gap-4">
     <!-- Paused Match Resume Banner -->
     <div id="savedBanner" class="hidden bg-amber-500/15 border-2 border-amber-400/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
       <div>
@@ -88,7 +86,7 @@
         </div>
         <div class="flex items-center gap-2">
           <button onclick="refreshLobby()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5">
-            <i id="refreshIcon" class="fa-solid fa-arrows-rotate text-amber-400"></i> 새로고침
+            <i class="fa-solid fa-arrows-rotate text-amber-400"></i> 새로고침
           </button>
           <button onclick="openRoomModal('online')" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs sm:text-sm shadow-lg flex items-center gap-1.5">
             <i class="fa-solid fa-plus"></i> 방 만들기
@@ -109,11 +107,81 @@
   </main>
 
   <!-- VIEW 2: ACTIVE BADUK GAME VIEW -->
-  <main id="gameView" class="hidden flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+  <main id="gameView" class="hidden flex-1 max-w-6xl w-full mx-auto px-2.5 sm:px-6 py-2.5 sm:py-4 grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
 
-    <!-- Left Column: Info, Players, Scoring Panel, Chat -->
-    <section class="lg:col-span-5 flex flex-col gap-3 order-2 lg:order-1">
-      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between gap-2">
+    <!-- Right Column (First on Mobile): Top Timer Bar + Baduk Board + Bottom Action Bar -->
+    <section class="lg:col-span-7 flex flex-col items-center order-1 lg:order-2 w-full gap-2">
+
+      <!-- TOP BYOYOMI TIMER BAR (Directly above the board for 1-screen mobile visibility) -->
+      <div class="w-full max-w-[560px] bg-slate-900/95 border border-slate-700 rounded-2xl px-3 py-2 shadow-lg">
+        <div class="flex items-center justify-between text-xs mb-1.5 gap-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <span id="turnLabel" class="font-black text-amber-400 truncate">대국 준비 중</span>
+            <span id="koLabel" class="hidden sm:inline-block text-[11px] text-rose-400 font-bold"></span>
+          </div>
+          <div class="font-mono flex items-center gap-1.5 shrink-0">
+            <i class="fa-regular fa-clock text-amber-400 text-xs"></i>
+            <span id="timerLabel" class="font-black text-white text-xs sm:text-sm">30초</span>
+            <span class="text-slate-600">|</span>
+            <span id="moveCountLabel" class="text-slate-300 font-bold text-xs">0수</span>
+          </div>
+        </div>
+        <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+          <div id="timerBar" class="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-300" style="width:100%"></div>
+        </div>
+      </div>
+
+      <!-- BADUK BOARD CANVAS (Coordinate labels hidden as requested) -->
+      <div class="relative w-full max-w-[560px] aspect-square board-frame rounded-2xl p-1 sm:p-1.5 flex items-center justify-center">
+        <canvas id="goCanvas"></canvas>
+
+        <!-- Modal Overlay inside Board for Result / Requests -->
+        <div id="boardOverlay" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm rounded-2xl z-20 flex items-center justify-center p-4">
+          <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-5 text-center shadow-2xl space-y-3">
+            <h3 id="ovTitle" class="text-lg font-black text-amber-400">대국 결과</h3>
+            <p id="ovDesc" class="text-xs sm:text-sm text-slate-200 whitespace-pre-line leading-relaxed"></p>
+            <div id="ovBtns" class="flex flex-wrap justify-center gap-2 pt-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OUTSIDE BOTTOM CONTROL BAR ('착수', '한수쉼', '계가', '기권') -->
+      <div id="extBar" class="w-full max-w-[560px] bg-slate-900/95 border border-slate-700 rounded-2xl px-3 py-2.5 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+        <div class="flex items-center justify-between sm:justify-start gap-2 min-w-0">
+          <div class="flex items-center gap-2 min-w-0">
+            <div id="coordBadge" class="w-7 h-7 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400 text-xs font-mono font-black shrink-0">
+              <i class="fa-solid fa-crosshairs"></i>
+            </div>
+            <div class="min-w-0">
+              <div id="extTitle" class="text-xs font-bold text-slate-200 truncate">바둑판 교차점을 선택하세요</div>
+              <div id="extSub" class="text-[10px] text-slate-400 truncate">교차점 선택 후 [착수] 또는 [한수쉼]</div>
+            </div>
+          </div>
+          <button onclick="copyKifuText()" class="sm:hidden px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-300 text-[11px] font-bold shrink-0">
+            <i class="fa-regular fa-copy mr-1"></i>기보 텍스트 복사
+          </button>
+        </div>
+
+        <div class="grid grid-cols-4 sm:flex items-center justify-end gap-1.5 shrink-0">
+          <button id="btnPlace" onclick="confirmPendingMove()" disabled class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow disabled:opacity-35 disabled:pointer-events-none flex items-center justify-center gap-1">
+            <i class="fa-solid fa-check"></i> 착수
+          </button>
+          <button id="btnPass" onclick="passTurn()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 text-xs font-bold text-center">
+            한수쉼
+          </button>
+          <button id="btnScore" onclick="requestScoring()" class="px-3 py-2 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700 text-purple-200 text-xs font-bold text-center">
+            계가
+          </button>
+          <button id="btnResign" onclick="confirmResign()" class="px-2.5 py-2 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs font-bold text-center">
+            기권
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Left Column (Second on Mobile): Room Info, Players, Scoring Panel, Kifu Copy, Chat -->
+    <section class="lg:col-span-5 flex flex-col gap-3 order-2 lg:order-1 w-full">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 flex items-center justify-between gap-2">
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-1">
             <span id="badgeSize" class="text-[11px] font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">19줄</span>
@@ -129,19 +197,19 @@
 
       <!-- Waiting / Paused Banner -->
       <div id="waitBanner" class="hidden bg-amber-500/15 border border-amber-500/40 rounded-2xl p-3 flex items-center gap-3">
-        <i id="waitIcon" class="fa-solid fa-spinner fa-spin text-amber-400 text-lg"></i>
+        <i class="fa-solid fa-spinner fa-spin text-amber-400 text-lg"></i>
         <div>
           <div id="waitTitle" class="text-xs font-bold text-amber-300">대국자 입장을 기다리는 중...</div>
           <div id="waitSub" class="text-[11px] text-slate-300">대기실에서 상대가 입장하면 즉시 시작됩니다.</div>
         </div>
       </div>
 
-      <!-- Players & Timer -->
+      <!-- Players & Options & Kifu Copy -->
       <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 space-y-3">
         <div class="grid grid-cols-2 gap-2.5">
           <div id="cardBlack" class="bg-slate-950 border-2 border-slate-800 rounded-xl p-2.5 transition">
             <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-full bg-slate-900 border border-slate-400 shadow shrink-0"></span>
+              <span class="w-5 h-5 rounded-full bg-slate-900 border border-slate-400 shadow shrink-0"></span>
               <div class="min-w-0">
                 <div id="nameBlack" class="text-xs font-bold text-white truncate">흑돌</div>
                 <div id="capBlack" class="text-[11px] text-amber-300 font-semibold">따낸 돌(사석): 0</div>
@@ -150,31 +218,12 @@
           </div>
           <div id="cardWhite" class="bg-slate-950 border-2 border-slate-800 rounded-xl p-2.5 transition">
             <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-full bg-white border border-slate-300 shadow shrink-0"></span>
+              <span class="w-5 h-5 rounded-full bg-white border border-slate-300 shadow shrink-0"></span>
               <div class="min-w-0">
                 <div id="nameWhite" class="text-xs font-bold text-white truncate">백돌</div>
                 <div id="capWhite" class="text-[11px] text-sky-300 font-semibold">따낸 돌(사석): 0</div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5">
-          <div class="flex items-center justify-between text-xs mb-1.5">
-            <span id="turnLabel" class="font-bold text-amber-400">대국 준비 중</span>
-            <div class="font-mono flex items-center gap-1.5">
-              <i class="fa-regular fa-clock text-slate-400"></i>
-              <span id="timerLabel" class="font-bold text-white">30초</span>
-              <span class="text-slate-600">|</span>
-              <span id="moveCountLabel" class="text-slate-400">0수</span>
-            </div>
-          </div>
-          <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-            <div id="timerBar" class="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-300" style="width:100%"></div>
-          </div>
-          <div class="flex items-center justify-between mt-1.5 text-[11px] text-slate-400">
-            <span id="koLabel">패(Ko) 금지 자리 없음</span>
-            <span class="text-rose-400 font-semibold">※ 초읽기 초과 시 즉시 시간패</span>
           </div>
         </div>
 
@@ -212,7 +261,7 @@
           </div>
         </div>
 
-        <!-- Option Toggles -->
+        <!-- Option Toggles & Kifu Text Copy Button -->
         <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
           <div class="flex items-center gap-3">
             <label class="flex items-center gap-1 cursor-pointer text-slate-300">
@@ -225,9 +274,14 @@
               <input id="chkTerr" type="checkbox" onchange="toggleTerritoryPreview(this.checked)" class="accent-amber-500" /> 형세판단
             </label>
           </div>
-          <button onclick="requestUndo()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold">
-            <i class="fa-solid fa-rotate-left"></i> 무르기
-          </button>
+          <div class="flex items-center gap-1.5">
+            <button onclick="copyKifuText()" class="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold flex items-center gap-1">
+              <i class="fa-regular fa-copy"></i> 기보 텍스트 복사
+            </button>
+            <button onclick="requestUndo()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold">
+              <i class="fa-solid fa-rotate-left"></i> 무르기
+            </button>
+          </div>
         </div>
       </div>
 
@@ -239,50 +293,6 @@
         <div class="flex gap-1.5">
           <input id="chatInput" type="text" maxlength="50" placeholder="대화 입력 후 Enter..." onkeydown="if(event.key==='Enter')sendChat()" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white outline-none" />
           <button onclick="sendChat()" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs">전송</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Right Column: Baduk Board + strictly OUTSIDE Bottom Control Bar -->
-    <section class="lg:col-span-7 flex flex-col items-center order-1 lg:order-2 w-full gap-3">
-      <div class="relative w-full max-w-[580px] aspect-square board-frame rounded-2xl p-1 sm:p-2 flex items-center justify-center">
-        <canvas id="goCanvas"></canvas>
-
-        <!-- Modal Overlay inside Board for Result / Requests -->
-        <div id="boardOverlay" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm rounded-2xl z-20 flex items-center justify-center p-4">
-          <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-5 text-center shadow-2xl space-y-3">
-            <h3 id="ovTitle" class="text-lg font-black text-amber-400">대국 결과</h3>
-            <p id="ovDesc" class="text-xs sm:text-sm text-slate-200 whitespace-pre-line leading-relaxed"></p>
-            <div id="ovBtns" class="flex flex-wrap justify-center gap-2 pt-2"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- OUTSIDE CONTROL BAR ('여기에 착수', '한수쉼(패스)', '계가신청', '기권') -->
-      <div id="extBar" class="w-full max-w-[580px] bg-slate-900/95 border border-slate-700 rounded-2xl px-3.5 py-3 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <div id="coordBadge" class="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400 text-xs font-mono font-black shrink-0">
-            <i class="fa-solid fa-crosshairs"></i>
-          </div>
-          <div class="min-w-0">
-            <div id="extTitle" class="text-xs sm:text-sm font-bold text-slate-200 truncate">바둑판 교차점을 선택하세요</div>
-            <div id="extSub" class="text-[11px] text-slate-400 truncate">교차점 선택 후 [여기에 착수]를 누르거나 [한수쉼]을 누르세요.</div>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
-          <button id="btnPlace" onclick="confirmPendingMove()" disabled class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow disabled:opacity-35 disabled:pointer-events-none flex items-center gap-1">
-            <i class="fa-solid fa-check"></i> 여기에 착수
-          </button>
-          <button id="btnPass" onclick="passTurn()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 text-xs font-bold">
-            한수쉼(패스)
-          </button>
-          <button id="btnScore" onclick="requestScoring()" class="px-3 py-2 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700 text-purple-200 text-xs font-bold">
-            계가신청
-          </button>
-          <button id="btnResign" onclick="confirmResign()" class="px-2.5 py-2 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs font-bold">
-            기권
-          </button>
         </div>
       </div>
     </section>
@@ -357,7 +367,8 @@
 
   <script>
     const EMPTY = 0, BLACK = 1, WHITE = 2;
-    const LETTERS = ['A','B','C','D','E','F','G','H','J','K','L','M','N','O','P','Q','R','S','T'];
+    // Consecutive alphabet A~S for Kifu notation ('E5 E3 E7 G3 F4')
+    const KIFU_COLS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S'];
     const LOBBY_TOPIC = 'baduk_kr_lobby_2026_v3/rooms';
     const SAVE_KEY = 'baduk_paused_match_v3';
 
@@ -376,6 +387,38 @@
 
     // Networking
     let mqttClient = null, bc = null, rooms = new Map(), hbTimer = null, peer = null, conn = null;
+
+    function coordToNotation(r, c) {
+      return `${KIFU_COLS[c] || 'A'}${N - r}`;
+    }
+
+    function getKifuString() {
+      if (!history.length) return '';
+      return history.map(m => m.pass ? 'PASS' : coordToNotation(m.r, m.c)).join(' ');
+    }
+
+    function copyKifuText() {
+      const kifu = getKifuString();
+      if (!kifu) {
+        toast('아직 기록된 수순(기보)이 없습니다.');
+        return;
+      }
+      const ta = document.createElement('textarea');
+      ta.value = kifu;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        const preview = kifu.length > 32 ? kifu.slice(0, 32) + '...' : kifu;
+        toast(`📋 기보 복사 완료: ${preview}`);
+      } catch (e) {
+        toast('기보 복사에 실패했습니다.');
+      }
+      document.body.removeChild(ta);
+    }
 
     function playClack(isBlack = true) {
       if (!soundOn) return;
@@ -610,7 +653,7 @@
         } else if (d.type === 'MOVE') placeStone(d.r, d.c, d.color, false);
         else if (d.type === 'PASS') doPass(d.color, false);
         else if (d.type === 'REQ_SCORE') {
-          showOverlay('계가(집 계산) 신청', '상대방이 사석 지정 및 계가를 신청했습니다. 동의하시겠습니까?', [
+          showOverlay('계가 신청', '상대방이 사석 지정 및 계가를 신청했습니다. 동의하시겠습니까?', [
             { label: '수락 (계가 진입)', primary: true, fn: () => { closeOverlay(); conn.send({ type: 'ENTER_SCORE' }); enterScoring(false); } },
             { label: '거절 (계속 두기)', fn: () => closeOverlay() }
           ]);
@@ -806,7 +849,7 @@
       history.push({ pass: true, col, snap: board.map(row => row.slice()), caps: { ...caps }, ko: koPoint });
       koPoint = null; passes++; pending = null;
       if (send && mode !== 'local' && conn && conn.open) conn.send({ type: 'PASS', color: col });
-      logChat('시스템', `⏭️ ${col === BLACK ? '흑' : '백'}이 [한수쉼(패스)]을 선언했습니다.`);
+      logChat('시스템', `⏭️ ${col === BLACK ? '흑' : '백'}이 [한수쉼]을 선언했습니다.`);
       if (passes >= 2) { enterScoring(false); return; }
       turn = turn === BLACK ? WHITE : BLACK;
       startTimer(true); updateUI(); drawBoard(); saveMatch();
@@ -847,7 +890,6 @@
 
       const alerts = [];
       corners.forEach(({ r0, c0, dr, dc }) => {
-        // L-shaped 4-point corner eye patterns (1x3 + 1 or 2x2 variations)
         const lPatterns = [
           [[r0, c0], [r0, c0 + dc], [r0, c0 + 2 * dc], [r0 + dr, c0]],
           [[r0, c0], [r0 + dr, c0], [r0 + 2 * dr, c0], [r0, c0 + dc]]
@@ -866,7 +908,6 @@
           });
           if (validSpace && defenderCols.size === 1) {
             const defCol = Array.from(defenderCols)[0];
-            // Find the defender corner group bordering this L-space
             const defChains = chains.filter(ch => ch.col === defCol && ch.stones.some(([sr, sc]) =>
               pts.some(([pr, pc]) => Math.abs(sr - pr) + Math.abs(sc - pc) === 1)
             ));
@@ -876,12 +917,11 @@
               ch.stones.forEach(s => allDefStones.push(s));
               ch.libs.forEach(l => { if (!pts.some(([pr, pc]) => `${pr},${pc}` === l)) extLibs.add(l); });
             });
-            // If defender group has no outside liberties besides this 4-point corner L-eye -> Bent Four in the Corner (귀곡사)!
             if (allDefStones.length >= 4 && extLibs.size === 0) {
               const [ar, ac] = allDefStones[0];
               if (roomInfo.rule === 'korean') {
                 allDefStones.forEach(([sr, sc]) => deadSet.add(`${sr},${sc}`));
-                pts.forEach(([pr, pc]) => deadSet.delete(`${pr},${pc}`)); // Revive any throw-in stone inside
+                pts.forEach(([pr, pc]) => deadSet.delete(`${pr},${pc}`));
                 shapeLabels.push({ r: ar, c: ac, text: '귀곡사(사석)', col: '#a855f7' });
                 alerts.push('🇰🇷 한국 규칙: 귀곡사(隅曲四)가 감지되어 자동으로 사석(죽은 돌) 처리되었습니다.');
               } else {
@@ -897,7 +937,6 @@
       chains.forEach(ch => {
         if (deadSet.has(`${ch.stones[0][0]},${ch.stones[0][1]}`)) return;
         const libCoords = Array.from(ch.libs).map(s => s.split(',').map(Number));
-        // Check if surrounded with small single eye cluster (3~6 spaces)
         if (ch.libs.size === 4) {
           const rs = new Set(libCoords.map(p => p[0])), cs = new Set(libCoords.map(p => p[1]));
           if (rs.size === 2 && cs.size === 2) {
@@ -917,7 +956,6 @@
             shapeLabels.push({ r: ch.stones[0][0], c: ch.stones[0][1], text: '매화육궁(사석)', col: '#ef4444' });
           }
         } else if (ch.libs.size <= 2 && ch.stones.length <= 3) {
-          // Small dead group without 2 eyes
           let sharedWithWeakOpp = false;
           chains.forEach(other => {
             if (other.col !== ch.col && other.libs.size <= 2) {
@@ -1030,6 +1068,7 @@
       const s = computeScore();
       const wName = s.win === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
       showOverlay(`🏆 ${wName} ${s.diff.toFixed(1)}집 승!`, `⚫ 흑: ${s.totB}집 vs ⚪ 백: ${s.totW}집 (덤 ${s.komi}집)\n최종 결과: ${wName}님이 ${s.diff.toFixed(1)}집 차이로 승리했습니다!`, [
+        { label: '📋 기보 텍스트 복사', fn: () => copyKifuText() },
         { label: '새 대국 시작', primary: true, fn: () => { closeOverlay(); assignColorsAndStart(); } },
         { label: '대기실로', fn: () => leaveToLobby() }
       ]);
@@ -1070,6 +1109,7 @@
       const wStr = win === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
       const lStr = loser === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
       showOverlay(`⏱️ 시간초과! ${wStr} 시간승!`, `${lStr}님이 초읽기 제한 시간(${roomInfo.time}초)을 초과하여 즉시 시간패 처리되었습니다.`, [
+        { label: '📋 기보 텍스트 복사', fn: () => copyKifuText() },
         { label: '새 대국 시작', primary: true, fn: () => { closeOverlay(); assignColorsAndStart(); } },
         { label: '대기실로', fn: () => leaveToLobby() }
       ]);
@@ -1091,6 +1131,7 @@
       const win = loser === BLACK ? WHITE : BLACK;
       const wStr = win === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
       showOverlay(`🏳️ ${wStr} 불계승!`, `상대방의 기권 선언으로 ${wStr}님이 불계승을 거두었습니다.`, [
+        { label: '📋 기보 텍스트 복사', fn: () => copyKifuText() },
         { label: '새 대국 시작', primary: true, fn: () => { closeOverlay(); assignColorsAndStart(); } },
         { label: '대기실로', fn: () => leaveToLobby() }
       ]);
@@ -1111,7 +1152,7 @@
       passes = 0; pending = null; startTimer(true); updateUI(); drawBoard(); saveMatch();
     }
 
-    // Board Canvas Rendering & Interaction
+    // Board Canvas Rendering (No coordinate numbers/letters drawn on the board)
     const cvs = document.getElementById('goCanvas'), ctx = cvs.getContext('2d');
 
     function resizeCanvas() {
@@ -1124,7 +1165,7 @@
     }
 
     function metrics() {
-      const w = cvs.width / (window.devicePixelRatio || 1), pad = Math.max(22, w * 0.06), cell = (w - pad * 2) / (N - 1);
+      const w = cvs.width / (window.devicePixelRatio || 1), pad = Math.max(16, w * 0.045), cell = (w - pad * 2) / (N - 1);
       return { w, pad, cell };
     }
 
@@ -1139,14 +1180,11 @@
       const { w, pad, cell } = metrics(); if (!w) return;
       ctx.clearRect(0, 0, w, w);
 
-      // Coordinates & Grid
+      // Grid lines only (1~9 / A~I coordinate labels removed as requested)
       ctx.fillStyle = '#3f2305'; ctx.strokeStyle = '#331d05';
-      ctx.font = `bold ${Math.max(8, Math.floor(cell * 0.34))}px sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       for (let i = 0; i < N; i++) {
         const p = pad + i * cell;
-        ctx.fillText(LETTERS[i], p, pad * 0.38); ctx.fillText(LETTERS[i], p, w - pad * 0.38);
-        ctx.fillText(N - i, pad * 0.38, p); ctx.fillText(N - i, w - pad * 0.38, p);
         ctx.lineWidth = 1.1;
         ctx.beginPath(); ctx.moveTo(pad, p); ctx.lineTo(w - pad, p); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(p, pad); ctx.lineTo(p, w - pad); ctx.stroke();
@@ -1277,7 +1315,8 @@
       document.getElementById('capBlack').textContent = `따낸 돌(사석): ${caps[BLACK]}`;
       document.getElementById('capWhite').textContent = `따낸 돌(사석): ${caps[WHITE]}`;
       document.getElementById('moveCountLabel').textContent = `${history.length}수`;
-      document.getElementById('koLabel').textContent = koPoint ? `🚫 패 금지: ${LETTERS[koPoint.c]}${N - koPoint.r}` : '패(Ko) 금지 자리 없음';
+      const koEl = document.getElementById('koLabel');
+      koEl.textContent = koPoint ? `🚫 패 금지` : '';
 
       document.getElementById('cardBlack').classList.toggle('active-turn', started && !ended && !paused && !scoring && turn === BLACK);
       document.getElementById('cardWhite').classList.toggle('active-turn', started && !ended && !paused && !scoring && turn === WHITE);
@@ -1286,15 +1325,15 @@
       if (paused) tLbl.textContent = '⏸️ 대국 일시정지 (재입장 대기)';
       else if (scoring) tLbl.textContent = '🧮 사석 지정 및 계가 합의 중';
       else if (ended) tLbl.textContent = '🏁 대국 종료';
-      else tLbl.textContent = turn === BLACK ? `⚫ 흑돌 차례 (${names[BLACK]})` : `⚪ 백돌 차례 (${names[WHITE]})`;
+      else tLbl.textContent = turn === BLACK ? `⚫ 흑 차례 (${names[BLACK]})` : `⚪ 백 차례 (${names[WHITE]})`;
 
       const btnPlace = document.getElementById('btnPlace');
       const coordBadge = document.getElementById('coordBadge');
       const extTitle = document.getElementById('extTitle');
       if (pending && canPlayNow()) {
-        const cStr = `${LETTERS[pending.c]}${N - pending.r}`;
+        const cStr = coordToNotation(pending.r, pending.c);
         coordBadge.textContent = cStr;
-        extTitle.textContent = `[${cStr}] 교차점이 선택되었습니다`;
+        extTitle.textContent = `선택된 위치에 [착수]를 누르세요`;
         btnPlace.disabled = false;
       } else {
         coordBadge.innerHTML = '<i class="fa-solid fa-crosshairs"></i>';
@@ -1320,7 +1359,7 @@
       const box = document.getElementById('ovBtns'); box.innerHTML = '';
       btns.forEach(b => {
         const el = document.createElement('button');
-        el.className = b.primary ? 'px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black text-xs' : 'px-4 py-2 rounded-xl bg-slate-800 text-slate-200 font-bold text-xs';
+        el.className = b.primary ? 'px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black text-xs' : 'px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs';
         el.textContent = b.label; el.onclick = b.fn; box.appendChild(el);
       });
       document.getElementById('boardOverlay').classList.remove('hidden');
