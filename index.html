@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>클라우드 오목 - 온라인 2인 P2P 대국</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PeerJS for Serverless WebRTC P2P Multiplayer -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Serif+KR:wght@600;900&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    :root {
+      --wood-light: #e6b875;
+      --wood-mid: #d6a156;
+      --wood-dark: #b37d33;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%);
+      color: #f8fafc;
+      min-height: 100vh;
+      overflow-x: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .serif-title {
+      font-family: 'Noto Serif KR', serif;
+    }
+
+    /* Wood board container effect */
+    .board-frame {
+      background: linear-gradient(145deg, #e7b976 0%, #cf984c 50%, #b88135 100%);
+      box-shadow:
+        0 20px 45px rgba(0, 0, 0, 0.65),
+        inset 0 2px 4px rgba(255, 255, 255, 0.45),
+        inset 0 -6px 12px rgba(82, 50, 12, 0.6);
+      border: 4px solid #8c5c1e;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: manipulation;
+      cursor: pointer;
+    }
+
+    /* Custom Scrollbar for Chat */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.4);
+      border-radius: 9999px;
+    }
+
+    /* Floating speech bubble animation */
+    @keyframes popInOut {
+      0% { opacity: 0; transform: translateY(8px) scale(0.9); }
+      12% { opacity: 1; transform: translateY(0) scale(1); }
+      85% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-6px) scale(0.95); }
+    }
+    .chat-bubble-anim {
+      animation: popInOut 4.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Pulse ring for active turn */
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55); }
+      50% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+    }
+    .active-turn-card {
+      animation: pulseGlow 2s infinite;
+      border-color: #f59e0b !important;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+  <!-- Top Navigation Header -->
+  <header class="w-full border-b border-slate-800/80 bg-slate-900/75 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
+      <!-- Brand Title -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md border border-amber-300/40">
+          <div class="flex items-center -space-x-1.5">
+            <span class="w-3.5 h-3.5 rounded-full bg-slate-950 border border-slate-700 inline-block shadow"></span>
+            <span class="w-3.5 h-3.5 rounded-full bg-white border border-slate-300 inline-block shadow"></span>
+          </div>
+        </div>
+        <div>
+          <h1 class="serif-title text-lg sm:text-xl font-black tracking-tight text-amber-400 flex items-center gap-2">
+            클라우드 오목
+            <span class="text-[11px] font-sans font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">P2P 온라인</span>
+          </h1>
+        </div>
+      </div>
+
+      <!-- Status Pill & Quick Actions -->
+      <div class="flex items-center gap-2">
+        <!-- Connection Badge -->
+        <div id="connectionBadge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 border border-slate-700 text-slate-300">
+          <span id="connectionDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+          <span id="connectionText">대기 중</span>
+        </div>
+
+        <!-- Sound Toggle -->
+        <button id="soundToggleBtn" onclick="toggleSound()" title="효과음 켜기/끄기" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-200 transition">
+          <i id="soundIcon" class="fa-solid fa-volume-high text-sm"></i>
+        </button>
+
+        <!-- GitHub Pages Guide Button -->
+        <button onclick="openModal('githubModal')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600/80 text-xs sm:text-sm font-medium text-slate-200 flex items-center gap-1.5 transition shadow-sm">
+          <i class="fa-brands fa-github text-base text-white"></i>
+          <span class="hidden sm:inline">깃허브 배포 방법</span>
+          <span class="sm:hidden">배포법</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+    <!-- Left/Top Column: Lobby, Player Status & Controls (5 cols on Desktop) -->
+    <section class="lg:col-span-5 flex flex-col gap-4 order-2 lg:order-1">
+
+      <!-- Mode Switcher & Connection Panel -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <!-- Mode Tabs -->
+        <div class="grid grid-cols-3 gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800/80 mb-4">
+          <button id="tabHost" onclick="switchModeTab('host')" class="py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow">
+            <i class="fa-solid fa-crown"></i> 방 만들기
+          </button>
+          <button id="tabJoin" onclick="switchModeTab('join')" class="py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white">
+            <i class="fa-solid fa-right-to-bracket"></i> 방 입장
+          </button>
+          <button id="tabLocal" onclick="switchModeTab('local')" class="py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white">
+            <i class="fa-solid fa-user-group"></i> 1기기 2인
+          </button>
+        </div>
+
+        <!-- TAB 1: HOST ROOM (방 만들기 - 흑돌) -->
+        <div id="panelHost" class="space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-slate-400 font-medium">내 역할: <strong class="text-white">흑돌 (선공)</strong></span>
+            <button onclick="createHostRoom()" class="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-rotate"></i> 새 코드 발급
+            </button>
+          </div>
+
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between">
+            <div>
+              <div class="text-[11px] text-slate-400">초대용 4자리 방 코드</div>
+              <div id="hostRoomCodeDisplay" class="text-2xl sm:text-3xl font-black tracking-widest text-amber-400 font-mono mt-0.5">----</div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <button onclick="copyRoomCode()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 flex items-center justify-center gap-1.5 transition">
+                <i class="fa-regular fa-copy"></i> 코드 복사
+              </button>
+              <button onclick="copyInviteLink()" class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold flex items-center justify-center gap-1.5 transition shadow">
+                <i class="fa-solid fa-link"></i> 초대링크 복사
+              </button>
+            </div>
+          </div>
+
+          <p id="hostStatusHelp" class="text-xs text-slate-400 leading-relaxed bg-slate-800/50 rounded-xl px-3 py-2 border border-slate-800">
+            <i class="fa-solid fa-circle-info text-amber-400 mr-1"></i>
+            친구에게 <strong>초대링크</strong>나 <strong>4자리 방 코드</strong>를 보내주세요. 친구가 접속하면 즉시 대국이 시작됩니다!
+          </p>
+        </div>
+
+        <!-- TAB 2: JOIN ROOM (방 입장하기 - 백돌) -->
+        <div id="panelJoin" class="space-y-3 hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-slate-400 font-medium">내 역할: <strong class="text-white">백돌 (후공)</strong></span>
+            <span class="text-[11px] text-slate-400">친구가 만든 방 번호 입력</span>
+          </div>
+
+          <div class="flex gap-2">
+            <input
+              id="joinCodeInput"
+              type="text"
+              maxlength="4"
+              placeholder="4자리 코드 (예: 4829)"
+              class="flex-1 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-lg font-mono font-bold tracking-widest text-center text-white uppercase outline-none transition"
+              onkeydown="if(event.key==='Enter') joinHostRoom()"
+            />
+            <button id="joinBtn" onclick="joinHostRoom()" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition shadow flex items-center gap-1.5 shrink-0">
+              <i class="fa-solid fa-plug"></i> 입장하기
+            </button>
+          </div>
+
+          <p id="joinStatusHelp" class="text-xs text-slate-400 leading-relaxed bg-slate-800/50 rounded-xl px-3 py-2 border border-slate-800">
+            <i class="fa-solid fa-circle-info text-sky-400 mr-1"></i>
+            친구에게 받은 4자리 숫자를 입력하고 <strong>입장하기</strong>를 누르세요.
+          </p>
+        </div>
+
+        <!-- TAB 3: LOCAL 2P MODE (오프라인 2인 대국) -->
+        <div id="panelLocal" class="space-y-3 hidden">
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between">
+            <div>
+              <div class="text-sm font-bold text-amber-400">오프라인 한 기기 2인 대국</div>
+              <div class="text-xs text-slate-400 mt-0.5">스마트폰이나 PC 한 대로 번갈아 가며 오목을 둡니다.</div>
+            </div>
+            <button onclick="startNewLocalGame()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow shrink-0">
+              <i class="fa-solid fa-play mr-1"></i> 새 판 시작
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Player Cards & Turn Timer -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+        <div class="grid grid-cols-2 gap-3 relative">
+          <!-- Black Player Card -->
+          <div id="cardBlack" class="relative bg-slate-950 border-2 border-slate-800 rounded-xl p-3 transition-all">
+            <!-- Floating Chat Bubble for Black -->
+            <div id="bubbleBlack" class="hidden absolute -top-10 left-2 right-2 z-20 pointer-events-none">
+              <div class="bg-amber-400 text-slate-950 text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg inline-block max-w-full truncate"></div>
+            </div>
+
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-slate-700 to-slate-950 border border-slate-500 shadow-inner flex items-center justify-center shrink-0">
+                <span class="w-2.5 h-2.5 rounded-full bg-white/20 -translate-x-0.5 -translate-y-0.5"></span>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1">
+                  <span class="text-xs font-bold text-white truncate" id="labelBlackName">흑돌 (선공)</span>
+                  <span id="badgeBlackMe" class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">나</span>
+                </div>
+                <div class="text-[11px] text-slate-400" id="scoreBlack">승리: 0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- White Player Card -->
+          <div id="cardWhite" class="relative bg-slate-950 border-2 border-slate-800 rounded-xl p-3 transition-all">
+            <!-- Floating Chat Bubble for White -->
+            <div id="bubbleWhite" class="hidden absolute -top-10 left-2 right-2 z-20 pointer-events-none">
+              <div class="bg-sky-400 text-slate-950 text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg inline-block max-w-full truncate"></div>
+            </div>
+
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-white via-slate-100 to-slate-300 border border-white shadow flex items-center justify-center shrink-0">
+                <span class="w-2.5 h-2.5 rounded-full bg-white -translate-x-0.5 -translate-y-0.5"></span>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1">
+                  <span class="text-xs font-bold text-white truncate" id="labelWhiteName">백돌 (후공)</span>
+                  <span id="badgeWhiteMe" class="hidden text-[10px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold">나</span>
+                </div>
+                <div class="text-[11px] text-slate-400" id="scoreWhite">승리: 0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Turn Banner & 30s Timer Bar -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+          <div class="flex items-center justify-between text-xs mb-1.5">
+            <div class="flex items-center gap-2">
+              <span id="turnStoneIndicator" class="w-3.5 h-3.5 rounded-full bg-slate-950 border border-slate-400 inline-block"></span>
+              <span id="turnStatusText" class="font-bold text-amber-400 text-sm">흑돌 차례입니다</span>
+            </div>
+            <div class="flex items-center gap-1.5 font-mono">
+              <i class="fa-regular fa-clock text-slate-400"></i>
+              <span id="timerText" class="font-bold text-slate-200">30초</span>
+              <span class="text-slate-600">|</span>
+              <span id="moveCountText" class="text-slate-400">0수</span>
+            </div>
+          </div>
+          <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div id="timerProgressBar" class="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-300" style="width: 100%"></div>
+          </div>
+        </div>
+
+        <!-- Gameplay Option Toggles & Action Buttons -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <!-- Toggles -->
+          <div class="flex items-center gap-3">
+            <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+              <input id="confirmMoveToggle" type="checkbox" onchange="toggleConfirmMode(this.checked)" class="rounded accent-amber-500 w-4 h-4 cursor-pointer" />
+              <span>착수 확인 <span class="text-[10px] text-slate-400">(모바일 추천)</span></span>
+            </label>
+            <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+              <input id="showNumbersToggle" type="checkbox" onchange="toggleMoveNumbers(this.checked)" class="rounded accent-amber-500 w-4 h-4 cursor-pointer" />
+              <span>수순 표시</span>
+            </label>
+          </div>
+
+          <!-- Game Action Buttons -->
+          <div class="flex items-center gap-1.5 ml-auto">
+            <button id="undoBtn" onclick="requestUndo()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition flex items-center gap-1 disabled:opacity-40 disabled:pointer-events-none">
+              <i class="fa-solid fa-rotate-left"></i> 무르기
+            </button>
+            <button id="rematchBtn" onclick="requestRematch()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-amber-300 transition flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> 재대국
+            </button>
+            <button id="resignBtn" onclick="openResignConfirm()" class="px-2.5 py-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900/70 border border-rose-800/60 text-xs font-semibold text-rose-300 transition flex items-center gap-1">
+              <i class="fa-regular fa-flag"></i> 기권
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Chat & Emoji Bar -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+            <i class="fa-regular fa-comment-dots text-amber-400"></i> 빠른 대화 & 감정표현
+          </span>
+          <span class="text-[11px] text-slate-500">클릭 시 즉시 전송</span>
+        </div>
+
+        <!-- Preset Quick Chat Pills -->
+        <div class="flex flex-wrap gap-1.5">
+          <button onclick="sendChatMessage('안녕하세요! 잘 부탁드립니다 🙇')" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 transition">안녕하세요! 🙇</button>
+          <button onclick="sendChatMessage('좋은 수네요! 👍')" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 transition">좋은 수네요! 👍</button>
+          <button onclick="sendChatMessage('잠시만 고민할게요 🤔')" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 transition">잠시만요 🤔</button>
+          <button onclick="sendChatMessage('헉! 못 봤어요 😲')" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 transition">헉! 😲</button>
+          <button onclick="sendChatMessage('수고하셨습니다! 👏')" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 transition">수고하셨습니다! 👏</button>
+        </div>
+
+        <!-- Chat Log Box -->
+        <div id="chatLog" class="h-24 overflow-y-auto bg-slate-950/80 border border-slate-800/90 rounded-xl p-2.5 space-y-1 text-xs">
+          <div class="text-slate-500">대국실에 오신 것을 환영합니다. 매너 있는 대국 되세요!</div>
+        </div>
+
+        <!-- Custom Chat Input -->
+        <div class="flex gap-2">
+          <input
+            id="chatInput"
+            type="text"
+            maxlength="50"
+            placeholder="메시지 입력 후 Enter..."
+            class="flex-1 bg-slate-950 border border-slate-800 focus:border-amber-400 rounded-xl px-3 py-1.5 text-xs text-white outline-none transition"
+            onkeydown="if(event.key==='Enter') submitCustomChat()"
+          />
+          <button onclick="submitCustomChat()" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition">
+            전송
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Right/Bottom Column: 15x15 Gomoku Board Canvas (7 cols on Desktop) -->
+    <section class="lg:col-span-7 flex flex-col items-center justify-center order-1 lg:order-2 w-full">
+      <div class="relative w-full max-w-[580px] aspect-square board-frame rounded-2xl p-1.5 sm:p-3 flex items-center justify-center">
+        <canvas id="gomokuCanvas"></canvas>
+
+        <!-- Floating Confirm Move Button (Shown when Confirm Mode is active & preview stone is selected) -->
+        <div id="confirmMoveBar" class="hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-slate-950/90 backdrop-blur-md border border-amber-400/70 px-4 py-2 rounded-full shadow-2xl">
+          <span id="previewCoordLabel" class="text-xs font-mono font-bold text-amber-300">H8</span>
+          <button onclick="confirmPendingMove()" class="px-3.5 py-1 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow transition flex items-center gap-1">
+            <i class="fa-solid fa-check"></i> 여기에 착수
+          </button>
+          <button onclick="cancelPendingMove()" class="w-6 h-6 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Interactive Request Overlay (Undo / Rematch / Resign / Winner) -->
+        <div id="boardOverlay" class="hidden absolute inset-0 bg-slate-950/75 backdrop-blur-sm rounded-2xl z-20 flex items-center justify-center p-4">
+          <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-5 text-center shadow-2xl space-y-4">
+            <div id="overlayIcon" class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center mx-auto text-2xl">
+              <i class="fa-solid fa-trophy"></i>
+            </div>
+            <div>
+              <h3 id="overlayTitle" class="text-lg font-black text-white">대국 종료</h3>
+              <p id="overlayDesc" class="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed"></p>
+            </div>
+            <div id="overlayButtons" class="flex items-center justify-center gap-2.5 pt-1"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- GitHub Pages Deployment Guide Modal -->
+  <div id="githubModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <i class="fa-brands fa-github text-xl text-amber-400"></i>
+          <h2 class="text-base sm:text-lg font-bold text-white">GitHub 무료 홈페이지(Pages) 배포 가이드</h2>
+        </div>
+        <button onclick="closeModal('githubModal')" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs sm:text-sm text-slate-300 leading-relaxed">
+        <p class="bg-amber-500/10 border border-amber-500/30 text-amber-200 rounded-xl p-3">
+          이 오목 게임은 별도의 서버 설치 없이 <strong>단 하나의 <code>index.html</code> 파일</strong>과 WebRTC(PeerJS) 기술로 동작하므로 <strong>GitHub Pages</strong>에 무료로 올릴 수 있습니다!
+        </p>
+
+        <ol class="space-y-2.5 list-decimal list-inside">
+          <li>
+            <strong class="text-white">GitHub 저장소(Repository) 생성:</strong><br/>
+            <span class="text-slate-400">GitHub 로그인 후 우측 상단 <code>+</code> &rarr; <code>New repository</code>를 클릭합니다. 저장소 이름(예: <code>gomoku</code>)을 적고 <strong>Public</strong>으로 생성합니다.</span>
+          </li>
+          <li>
+            <strong class="text-white"><code>index.html</code> 파일 업로드:</strong><br/>
+            <span class="text-slate-400">생성된 저장소 화면에서 <code>uploading an existing file</code> 링크를 누르고, 현재 이 코드가 저장된 <code>index.html</code> 파일을 드래그 앤 드롭한 뒤 하단 초록색 <code>Commit changes</code> 버튼을 클릭합니다.</span>
+          </li>
+          <li>
+            <strong class="text-white">GitHub Pages 활성화:</strong><br/>
+            <span class="text-slate-400">저장소 상단 메뉴의 <code>Settings</code> &rarr; 좌측 메뉴 <code>Pages</code>로 이동합니다. <strong>Branch</strong> 항목에서 <code>None</code>을 <code>main</code>(또는 <code>master</code>)으로 바꾸고 <code>Save</code>를 누릅니다.</span>
+          </li>
+          <li>
+            <strong class="text-white">친구와 접속해 대국하기:</strong><br/>
+            <span class="text-slate-400">약 1분 뒤 <code>https://내아이디.github.io/gomoku/</code> 주소가 활성화됩니다. 내가 <strong>방 만들기</strong>에서 <strong>초대링크 복사</strong>를 눌러 카카오톡/디스코드로 친구에게 보내면 바로 온라인 대국이 시작됩니다!</span>
+          </li>
+        </ol>
+      </div>
+
+      <div class="pt-2 flex justify-end">
+        <button onclick="closeModal('githubModal')" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm transition">
+          확인했습니다
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Script -->
+  <script>
+    /**************************************************************
+     * 1. SOUND SYNTHESIZER (Web Audio API - Zero External Files)
+     **************************************************************/
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) audioCtx = new AudioContextClass();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const icon = document.getElementById('soundIcon');
+      icon.className = soundEnabled ? 'fa-solid fa-volume-high text-sm text-amber-400' : 'fa-solid fa-volume-xmark text-sm text-slate-500';
+      showToast(soundEnabled ? '효과음이 켜졌습니다.' : '효과음이 꺼졌습니다.');
+    }
+
+    // Realistic wooden board stone clack ("딱!")
+    function playStoneSound(isBlack = true) {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+
+        // Short percussive noise burst for slate/glass click
+        const bufferSize = ctx.sampleRate * 0.045;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.008));
+        }
+        const whiteNoise = ctx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(isBlack ? 1850 : 2100, now);
+        filter.Q.setValueAtTime(3.2, now);
+
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.7, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+
+        whiteNoise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        whiteNoise.start(now);
+
+        // Wooden board resonance thud
+        const osc = ctx.createOscillator();
+        const oscGain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(isBlack ? 310 : 340, now);
+        osc.frequency.exponentialRampToValueAtTime(95, now + 0.065);
+
+        oscGain.gain.setValueAtTime(0.45, now);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+
+        osc.connect(oscGain);
+        oscGain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.07);
+      } catch (e) {
+        // Ignore audio context restriction errors
+      }
+    }
+
+    function playWinFanfare() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => {
+          const now = ctx.currentTime + idx * 0.11;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.22, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.46);
+        });
+      } catch (e) {}
+    }
+
+    function playChatPop() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(580, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      } catch (e) {}
+    }
+
+    /**************************************************************
+     * 2. GAME STATE & CONSTANTS
+     **************************************************************/
+    const BOARD_SIZE = 15;
+    const EMPTY = 0;
+    const BLACK = 1;
+    const WHITE = 2;
+    const PEER_PREFIX = 'gomoku-kr-p2p-';
+    const TURN_TIME_LIMIT = 30;
+
+    let board = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(EMPTY));
+    let moveHistory = []; // [{ r, c, color }]
+    let currentTurn = BLACK;
+    let gameOver = false;
+    let winningCells = []; // [{ r, c }]
+
+    // Modes: 'host' (online Black), 'join' (online White), 'local' (offline 2P on 1 device)
+    let gameMode = 'host';
+    let myColor = BLACK;
+    let scores = { [BLACK]: 0, [WHITE]: 0 };
+
+    // Interaction & UI state
+    let hoverCell = null;     // { r, c }
+    let pendingMove = null;   // { r, c } when confirmMoveMode is enabled
+    let confirmMoveMode = window.innerWidth < 768; // Default ON for mobile touchscreens
+    let showMoveNumbers = false;
+
+    // Turn timer
+    let timeLeft = TURN_TIME_LIMIT;
+    let timerInterval = null;
+
+    // PeerJS state
+    let peer = null;
+    let conn = null;
+    let currentRoomCode = '';
+
+    /**************************************************************
+     * 3. CANVAS RENDERING (15x15 Traditional Board & 3D Stones)
+     **************************************************************/
+    const canvas = document.getElementById('gomokuCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const size = Math.floor(Math.min(rect.width, rect.height));
+      canvas.width = size * dpr;
+      canvas.height = size * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawBoard();
+    }
+
+    function getBoardMetrics() {
+      const dpr = window.devicePixelRatio || 1;
+      const width = canvas.width / dpr;
+      const padding = Math.max(26, width * 0.068);
+      const gridWidth = width - padding * 2;
+      const cellSize = gridWidth / (BOARD_SIZE - 1);
+      return { width, padding, cellSize };
+    }
+
+    function drawBoard() {
+      const { width, padding, cellSize } = getBoardMetrics();
+      ctx.clearRect(0, 0, width, width);
+
+      // Subtle wood grain lines
+      ctx.save();
+      ctx.strokeStyle = 'rgba(120, 72, 18, 0.08)';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < width; i += 9) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.bezierCurveTo(width * 0.3, i + 4, width * 0.7, i - 4, width, i);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Coordinate Labels (A-O, 1-15)
+      ctx.save();
+      ctx.fillStyle = '#4a2c0a';
+      ctx.font = `bold ${Math.max(9, Math.floor(cellSize * 0.32))}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      for (let i = 0; i < BOARD_SIZE; i++) {
+        const x = padding + i * cellSize;
+        const y = padding + i * cellSize;
+        const colChar = String.fromCharCode(65 + i); // A - O
+        const rowNum = (BOARD_SIZE - i).toString();  // 15 - 1
+
+        // Top & Bottom letters
+        ctx.fillText(colChar, x, padding * 0.42);
+        ctx.fillText(colChar, x, width - padding * 0.42);
+        // Left & Right numbers
+        ctx.fillText(rowNum, padding * 0.42, y);
+        ctx.fillText(rowNum, width - padding * 0.42, y);
+      }
+      ctx.restore();
+
+      // 15x15 Grid Lines
+      ctx.save();
+      ctx.strokeStyle = '#3b2308';
+      ctx.lineWidth = 1.15;
+
+      for (let i = 0; i < BOARD_SIZE; i++) {
+        const pos = padding + i * cellSize;
+        // Horizontal line
+        ctx.beginPath();
+        ctx.moveTo(padding, pos);
+        ctx.lineTo(width - padding, pos);
+        ctx.stroke();
+
+        // Vertical line
+        ctx.beginPath();
+        ctx.moveTo(pos, padding);
+        ctx.lineTo(pos, width - padding);
+        ctx.stroke();
+      }
+
+      // Outer border emphasis
+      ctx.lineWidth = 2.2;
+      ctx.strokeRect(padding, padding, cellSize * (BOARD_SIZE - 1), cellSize * (BOARD_SIZE - 1));
+      ctx.restore();
+
+      // Star Points (화점: 3, 7, 11)
+      const starCoords = [3, 7, 11];
+      ctx.save();
+      ctx.fillStyle = '#3b2308';
+      for (const r of starCoords) {
+        for (const c of starCoords) {
+          const sx = padding + c * cellSize;
+          const sy = padding + r * cellSize;
+          ctx.beginPath();
+          ctx.arc(sx, sy, Math.max(3, cellSize * 0.11), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+
+      // Hover / Pending Preview Stone
+      const activePreview = pendingMove || hoverCell;
+      if (activePreview && !gameOver && isMyTurnAllowed() && board[activePreview.r][activePreview.c] === EMPTY) {
+        const px = padding + activePreview.c * cellSize;
+        const py = padding + activePreview.r * cellSize;
+        const radius = cellSize * 0.44;
+
+        ctx.save();
+        // Guide crosshair
+        ctx.strokeStyle = currentTurn === BLACK ? 'rgba(15, 23, 42, 0.55)' : 'rgba(255, 255, 255, 0.75)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(px - cellSize * 0.7, py);
+        ctx.lineTo(px + cellSize * 0.7, py);
+        ctx.moveTo(px, py - cellSize * 0.7);
+        ctx.lineTo(px, py + cellSize * 0.7);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Semi-transparent stone
+        ctx.globalAlpha = pendingMove ? 0.8 : 0.48;
+        drawSingleStone(px, py, radius, currentTurn);
+
+        if (pendingMove) {
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(px, py, radius + 3, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // Draw Placed Stones
+      moveHistory.forEach((move, idx) => {
+        const sx = padding + move.c * cellSize;
+        const sy = padding + move.r * cellSize;
+        const radius = cellSize * 0.445;
+
+        drawSingleStone(sx, sy, radius, move.color);
+
+        // Last placed stone marker
+        const isLast = idx === moveHistory.length - 1;
+        if (isLast && !showMoveNumbers) {
+          ctx.save();
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.arc(sx, sy, Math.max(3.5, radius * 0.26), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Move number label if enabled
+        if (showMoveNumbers) {
+          ctx.save();
+          ctx.fillStyle = isLast ? '#f59e0b' : (move.color === BLACK ? '#f8fafc' : '#0f172a');
+          ctx.font = `bold ${Math.max(9, Math.floor(radius * 0.85))}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText((idx + 1).toString(), sx, sy + 0.5);
+          ctx.restore();
+        }
+      });
+
+      // Highlight Winning 5-in-a-Row Line
+      if (winningCells.length >= 5) {
+        const first = winningCells[0];
+        const last = winningCells[winningCells.length - 1];
+        const x1 = padding + first.c * cellSize;
+        const y1 = padding + first.r * cellSize;
+        const x2 = padding + last.c * cellSize;
+        const y2 = padding + last.r * cellSize;
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.95)';
+        ctx.lineWidth = Math.max(4, cellSize * 0.16);
+        ctx.lineCap = 'round';
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+
+        winningCells.forEach(cell => {
+          const cx = padding + cell.c * cellSize;
+          const cy = padding + cell.r * cellSize;
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(cx, cy, cellSize * 0.46, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+    }
+
+    function drawSingleStone(x, y, radius, color) {
+      ctx.save();
+      // Drop shadow
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.42)';
+      ctx.shadowBlur = radius * 0.35;
+      ctx.shadowOffsetX = radius * 0.12;
+      ctx.shadowOffsetY = radius * 0.18;
+
+      const grad = ctx.createRadialGradient(
+        x - radius * 0.3,
+        y - radius * 0.3,
+        radius * 0.1,
+        x,
+        y,
+        radius
+      );
+
+      if (color === BLACK) {
+        grad.addColorStop(0, '#64748b');
+        grad.addColorStop(0.35, '#1e293b');
+        grad.addColorStop(1, '#020617');
+      } else {
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.65, '#f1f5f9');
+        grad.addColorStop(1, '#cbd5e1');
+      }
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    /**************************************************************
+     * 4. BOARD INTERACTION & GOMOKU LOGIC
+     **************************************************************/
+    function getGridFromPointer(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const { padding, cellSize } = getBoardMetrics();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+
+      const c = Math.round((x - padding) / cellSize);
+      const r = Math.round((y - padding) / cellSize);
+
+      if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return null;
+
+      const ix = padding + c * cellSize;
+      const iy = padding + r * cellSize;
+      const dist = Math.hypot(x - ix, y - iy);
+      if (dist > cellSize * 0.65) return null;
+
+      return { r, c };
+    }
+
+    function formatCoordLabel(r, c) {
+      return `${String.fromCharCode(65 + c)}${BOARD_SIZE - r}`;
+    }
+
+    function isMyTurnAllowed() {
+      if (gameOver) return false;
+      if (gameMode === 'local') return true;
+      if (!conn || !conn.open) return false;
+      return currentTurn === myColor;
+    }
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (gameOver || !isMyTurnAllowed()) {
+        if (hoverCell) { hoverCell = null; drawBoard(); }
+        return;
+      }
+      const cell = getGridFromPointer(e.clientX, e.clientY);
+      if (!cell || board[cell.r][cell.c] !== EMPTY) {
+        if (hoverCell) { hoverCell = null; drawBoard(); }
+        return;
+      }
+      if (!hoverCell || hoverCell.r !== cell.r || hoverCell.c !== cell.c) {
+        hoverCell = cell;
+        drawBoard();
+      }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      if (hoverCell) {
+        hoverCell = null;
+        drawBoard();
+      }
+    });
+
+    canvas.addEventListener('click', (e) => {
+      getAudioContext(); // Unlock audio on first user gesture
+      if (gameOver) return;
+
+      if (gameMode !== 'local' && (!conn || !conn.open)) {
+        showToast('상대방과 아직 연결되지 않았습니다. 초대링크를 공유하거나 1기기 2인 모드를 선택하세요.');
+        return;
+      }
+
+      if (!isMyTurnAllowed()) {
+        showToast('상대방의 차례입니다.');
+        return;
+      }
+
+      const cell = getGridFromPointer(e.clientX, e.clientY);
+      if (!cell || board[cell.r][cell.c] !== EMPTY) return;
+
+      if (confirmMoveMode) {
+        // If tapping the exact same pending cell again, confirm immediately!
+        if (pendingMove && pendingMove.r === cell.r && pendingMove.c === cell.c) {
+          confirmPendingMove();
+          return;
+        }
+        pendingMove = cell;
+        const bar = document.getElementById('confirmMoveBar');
+        document.getElementById('previewCoordLabel').textContent = formatCoordLabel(cell.r, cell.c);
+        bar.classList.remove('hidden');
+        drawBoard();
+      } else {
+        executeMove(cell.r, cell.c, currentTurn, true);
+      }
+    });
+
+    function confirmPendingMove() {
+      if (!pendingMove) return;
+      const { r, c } = pendingMove;
+      cancelPendingMove();
+      executeMove(r, c, currentTurn, true);
+    }
+
+    function cancelPendingMove() {
+      pendingMove = null;
+      document.getElementById('confirmMoveBar').classList.add('hidden');
+      drawBoard();
+    }
+
+    function toggleConfirmMode(checked) {
+      confirmMoveMode = checked;
+      if (!checked) cancelPendingMove();
+    }
+
+    function toggleMoveNumbers(checked) {
+      showMoveNumbers = checked;
+      drawBoard();
+    }
+
+    function executeMove(r, c, color, broadcast = true) {
+      if (gameOver || board[r][c] !== EMPTY) return;
+
+      board[r][c] = color;
+      moveHistory.push({ r, c, color });
+      hoverCell = null;
+      cancelPendingMove();
+      playStoneSound(color === BLACK);
+
+      if (broadcast && gameMode !== 'local' && conn && conn.open) {
+        conn.send({ type: 'MOVE', r, c, color });
+      }
+
+      // Check Win
+      const winLine = checkFiveInARow(r, c, color);
+      if (winLine) {
+        winningCells = winLine;
+        gameOver = true;
+        stopTurnTimer();
+        scores[color]++;
+        updateScoreUI();
+        drawBoard();
+        playWinFanfare();
+
+        const winnerName = color === BLACK ? '흑돌' : '백돌';
+        showBoardOverlay(
+          'fa-trophy',
+          `${winnerName} 승리! 🎉`,
+          `${moveHistory.length}수 만에 ${winnerName}이 오목을 완성했습니다.`,
+          [
+            { label: '재대국 신청', primary: true, onClick: () => { closeBoardOverlay(); requestRematch(); } },
+            { label: '판 보기', primary: false, onClick: () => closeBoardOverlay() }
+          ]
+        );
+        return;
+      }
+
+      // Check Draw (Full Board)
+      if (moveHistory.length >= BOARD_SIZE * BOARD_SIZE) {
+        gameOver = true;
+        stopTurnTimer();
+        drawBoard();
+        showBoardOverlay(
+          'fa-handshake',
+          '무승부!',
+          '오목판의 모든 자리가 채워져 무승부로 종료되었습니다.',
+          [
+            { label: '재대국', primary: true, onClick: () => { closeBoardOverlay(); requestRematch(); } }
+          ]
+        );
+        return;
+      }
+
+      // Switch turn
+      currentTurn = currentTurn === BLACK ? WHITE : BLACK;
+      updateTurnUI();
+      resetTurnTimer();
+      drawBoard();
+    }
+
+    function checkFiveInARow(r, c, color) {
+      const directions = [
+        [0, 1],  // Horizontal
+        [1, 0],  // Vertical
+        [1, 1],  // Diagonal \
+        [1, -1]  // Diagonal /
+      ];
+
+      for (const [dr, dc] of directions) {
+        const line = [{ r, c }];
+
+        // Forward direction
+        let nr = r + dr;
+        let nc = c + dc;
+        while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === color) {
+          line.push({ r: nr, c: nc });
+          nr += dr;
+          nc += dc;
+        }
+
+        // Backward direction
+        nr = r - dr;
+        nc = c - dc;
+        while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === color) {
+          line.unshift({ r: nr, c: nc });
+          nr -= dr;
+          nc -= dc;
+        }
+
+        if (line.length >= 5) {
+          return line;
+        }
+      }
+      return null;
+    }
+
+    function resetBoardState() {
+      board = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(EMPTY));
+      moveHistory = [];
+      currentTurn = BLACK;
+      gameOver = false;
+      winningCells = [];
+      hoverCell = null;
+      cancelPendingMove();
+      closeBoardOverlay();
+      updateTurnUI();
+      resetTurnTimer();
+      drawBoard();
+    }
+
+    /**************************************************************
+     * 5. TURN TIMER & STATUS UI
+     **************************************************************/
+    function resetTurnTimer() {
+      stopTurnTimer();
+      timeLeft = TURN_TIME_LIMIT;
+      renderTimerUI();
+
+      // Start countdown once at least 1 stone is placed or peer is connected
+      if (gameOver) return;
+      if (gameMode !== 'local' && (!conn || !conn.open)) return;
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        renderTimerUI();
+        if (timeLeft <= 0) {
+          stopTurnTimer();
+          handleTurnTimeout();
+        }
+      }, 1000);
+    }
+
+    function stopTurnTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function renderTimerUI() {
+      const timerText = document.getElementById('timerText');
+      const bar = document.getElementById('timerProgressBar');
+      timerText.textContent = `${Math.max(0, timeLeft)}초`;
+      const pct = Math.max(0, (timeLeft / TURN_TIME_LIMIT) * 100);
+      bar.style.width = `${pct}%`;
+
+      if (timeLeft <= 7) {
+        timerText.className = 'font-bold text-rose-400 animate-pulse';
+      } else {
+        timerText.className = 'font-bold text-slate-200';
+      }
+    }
+
+    function handleTurnTimeout() {
+      if (gameOver) return;
+      // If it's our turn (or local mode), auto-play a random valid stone near center or last move
+      if (gameMode === 'local' || currentTurn === myColor) {
+        const autoCell = pickFallbackMove();
+        if (autoCell) {
+          showToast('시간이 초과되어 자동으로 착수되었습니다.');
+          executeMove(autoCell.r, autoCell.c, currentTurn, true);
+        }
+      }
+    }
+
+    function pickFallbackMove() {
+      if (moveHistory.length === 0) return { r: 7, c: 7 };
+      const last = moveHistory[moveHistory.length - 1];
+      for (let radius = 1; radius < BOARD_SIZE; radius++) {
+        for (let dr = -radius; dr <= radius; dr++) {
+          for (let dc = -radius; dc <= radius; dc++) {
+            const nr = last.r + dr;
+            const nc = last.c + dc;
+            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === EMPTY) {
+              return { r: nr, c: nc };
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    function updateTurnUI() {
+      const cardBlack = document.getElementById('cardBlack');
+      const cardWhite = document.getElementById('cardWhite');
+      const turnStone = document.getElementById('turnStoneIndicator');
+      const turnText = document.getElementById('turnStatusText');
+      const moveCount = document.getElementById('moveCountText');
+      const undoBtn = document.getElementById('undoBtn');
+
+      moveCount.textContent = `${moveHistory.length}수`;
+      undoBtn.disabled = moveHistory.length === 0 || gameOver;
+
+      if (currentTurn === BLACK) {
+        cardBlack.classList.add('active-turn-card');
+        cardWhite.classList.remove('active-turn-card');
+        turnStone.className = 'w-3.5 h-3.5 rounded-full bg-slate-950 border border-slate-300 inline-block';
+      } else {
+        cardWhite.classList.add('active-turn-card');
+        cardBlack.classList.remove('active-turn-card');
+        turnStone.className = 'w-3.5 h-3.5 rounded-full bg-white border border-slate-300 inline-block';
+      }
+
+      if (gameMode === 'local') {
+        turnText.textContent = currentTurn === BLACK ? '흑돌 차례입니다' : '백돌 차례입니다';
+      } else {
+        const isMine = currentTurn === myColor;
+        const colorLabel = currentTurn === BLACK ? '흑돌' : '백돌';
+        turnText.textContent = isMine ? `내 차례입니다 (${colorLabel})` : `상대방 차례입니다 (${colorLabel})`;
+      }
+    }
+
+    function updateScoreUI() {
+      document.getElementById('scoreBlack').textContent = `승리: ${scores[BLACK]}`;
+      document.getElementById('scoreWhite').textContent = `승리: ${scores[WHITE]}`;
+    }
+
+    /**************************************************************
+     * 6. UNDO, REMATCH, RESIGN & OVERLAYS
+     **************************************************************/
+    function requestUndo() {
+      if (moveHistory.length === 0 || gameOver) return;
+
+      if (gameMode === 'local') {
+        performUndoStep(1);
+        showToast('한 수 물렀습니다.');
+        return;
+      }
+
+      if (!conn || !conn.open) {
+        showToast('상대방과 연결되어 있지 않습니다.');
+        return;
+      }
+
+      conn.send({ type: 'UNDO_REQ' });
+      showToast('상대방에게 무르기를 요청했습니다.');
+    }
+
+    function performUndoStep(count = 1) {
+      for (let i = 0; i < count; i++) {
+        const last = moveHistory.pop();
+        if (last) {
+          board[last.r][last.c] = EMPTY;
+          currentTurn = last.color;
+        }
+      }
+      cancelPendingMove();
+      updateTurnUI();
+      resetTurnTimer();
+      drawBoard();
+    }
+
+    function requestRematch() {
+      if (gameMode === 'local') {
+        resetBoardState();
+        showToast('새 대국을 시작합니다.');
+        return;
+      }
+
+      if (!conn || !conn.open) {
+        resetBoardState();
+        return;
+      }
+
+      conn.send({ type: 'REMATCH_REQ' });
+      showToast('상대방에게 재대국을 신청했습니다.');
+    }
+
+    function openResignConfirm() {
+      if (gameOver || moveHistory.length === 0) {
+        showToast('진행 중인 대국이 없습니다.');
+        return;
+      }
+      showBoardOverlay(
+        'fa-flag',
+        '기권하시겠습니까?',
+        '기권하면 현재 대국에서 패배 처리됩니다.',
+        [
+          {
+            label: '기권하기',
+            primary: true,
+            onClick: () => {
+              closeBoardOverlay();
+              handleResignation(myColor, true);
+            }
+          },
+          { label: '취소', primary: false, onClick: () => closeBoardOverlay() }
+        ]
+      );
+    }
+
+    function handleResignation(resigningColor, broadcast = false) {
+      if (gameOver) return;
+      gameOver = true;
+      stopTurnTimer();
+
+      if (broadcast && gameMode !== 'local' && conn && conn.open) {
+        conn.send({ type: 'RESIGN', color: resigningColor });
+      }
+
+      const winnerColor = resigningColor === BLACK ? WHITE : BLACK;
+      scores[winnerColor]++;
+      updateScoreUI();
+
+      const resignName = resigningColor === BLACK ? '흑돌' : '백돌';
+      const winnerName = winnerColor === BLACK ? '흑돌' : '백돌';
+
+      showBoardOverlay(
+        'fa-flag',
+        `${winnerName} 기권승!`,
+        `${resignName}이 기권을 선언하여 ${winnerName}이 승리했습니다.`,
+        [
+          { label: '재대국 신청', primary: true, onClick: () => { closeBoardOverlay(); requestRematch(); } },
+          { label: '닫기', primary: false, onClick: () => closeBoardOverlay() }
+        ]
+      );
+    }
+
+    function showBoardOverlay(iconClass, title, desc, buttons = []) {
+      const overlay = document.getElementById('boardOverlay');
+      const iconEl = document.getElementById('overlayIcon');
+      const titleEl = document.getElementById('overlayTitle');
+      const descEl = document.getElementById('overlayDesc');
+      const btnContainer = document.getElementById('overlayButtons');
+
+      iconEl.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+      titleEl.textContent = title;
+      descEl.textContent = desc;
+      btnContainer.innerHTML = '';
+
+      buttons.forEach(btn => {
+        const b = document.createElement('button');
+        b.textContent = btn.label;
+        b.className = btn.primary
+          ? 'px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm transition shadow'
+          : 'px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs sm:text-sm transition';
+        b.onclick = btn.onClick;
+        btnContainer.appendChild(b);
+      });
+
+      overlay.classList.remove('hidden');
+    }
+
+    function closeBoardOverlay() {
+      document.getElementById('boardOverlay').classList.add('hidden');
+    }
+
+    /**************************************************************
+     * 7. PEERJS WEBRTC MULTIPLAYER (Room Host & Join)
+     **************************************************************/
+    function generate4DigitCode() {
+      return Math.floor(1000 + Math.random() * 9000).toString();
+    }
+
+    function setConnectionStatus(state, text) {
+      const dot = document.getElementById('connectionDot');
+      const label = document.getElementById('connectionText');
+      label.textContent = text;
+
+      if (state === 'connected') {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+      } else if (state === 'waiting') {
+        dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+      } else if (state === 'error') {
+        dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+      } else {
+        dot.className = 'w-2 h-2 rounded-full bg-slate-400';
+      }
+    }
+
+    function cleanupPeer() {
+      if (conn) {
+        try { conn.close(); } catch (e) {}
+        conn = null;
+      }
+      if (peer) {
+        try { peer.destroy(); } catch (e) {}
+        peer = null;
+      }
+    }
+
+    function switchModeTab(mode) {
+      gameMode = mode;
+
+      // Tab buttons styling
+      const tabs = {
+        host: document.getElementById('tabHost'),
+        join: document.getElementById('tabJoin'),
+        local: document.getElementById('tabLocal')
+      };
+      const panels = {
+        host: document.getElementById('panelHost'),
+        join: document.getElementById('panelJoin'),
+        local: document.getElementById('panelLocal')
+      };
+
+      Object.keys(tabs).forEach(k => {
+        if (k === mode) {
+          tabs[k].className = 'py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow';
+          panels[k].classList.remove('hidden');
+        } else {
+          tabs[k].className = 'py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white';
+          panels[k].classList.add('hidden');
+        }
+      });
+
+      const badgeBlack = document.getElementById('badgeBlackMe');
+      const badgeWhite = document.getElementById('badgeWhiteMe');
+
+      if (mode === 'host') {
+        myColor = BLACK;
+        badgeBlack.classList.remove('hidden');
+        badgeWhite.classList.add('hidden');
+        createHostRoom();
+      } else if (mode === 'join') {
+        myColor = WHITE;
+        badgeBlack.classList.add('hidden');
+        badgeWhite.classList.remove('hidden');
+        cleanupPeer();
+        setConnectionStatus('waiting', '코드 입력 대기');
+        resetBoardState();
+      } else if (mode === 'local') {
+        cleanupPeer();
+        badgeBlack.classList.add('hidden');
+        badgeWhite.classList.add('hidden');
+        setConnectionStatus('connected', '오프라인 2인 모드');
+        resetBoardState();
+      }
+    }
+
+    function createHostRoom() {
+      cleanupPeer();
+      resetBoardState();
+
+      currentRoomCode = generate4DigitCode();
+      document.getElementById('hostRoomCodeDisplay').textContent = currentRoomCode;
+      setConnectionStatus('waiting', `방 대기 중 (${currentRoomCode})`);
+
+      const peerId = PEER_PREFIX + currentRoomCode;
+      peer = new Peer(peerId);
+
+      peer.on('open', () => {
+        setConnectionStatus('waiting', `초대 대기 중 (${currentRoomCode})`);
+      });
+
+      peer.on('connection', (incomingConn) => {
+        // Only allow 1 active opponent at a time
+        if (conn && conn.open) {
+          incomingConn.close();
+          return;
+        }
+        conn = incomingConn;
+        setupDataConnection();
+      });
+
+      peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+          // Retry with another random 4-digit code
+          createHostRoom();
+        } else {
+          setConnectionStatus('error', '네트워크 오류');
+          showToast('P2P 서버 연결 중 오류가 발생했습니다.');
+        }
+      });
+    }
+
+    function joinHostRoom() {
+      const input = document.getElementById('joinCodeInput');
+      const code = input.value.trim();
+      if (code.length < 4) {
+        showToast('4자리 방 코드를 정확히 입력해주세요.');
+        return;
+      }
+
+      cleanupPeer();
+      currentRoomCode = code;
+      setConnectionStatus('waiting', `${code}번 방 연결 중...`);
+      document.getElementById('joinStatusHelp').innerHTML = `<i class="fa-solid fa-spinner fa-spin text-amber-400 mr-1"></i> <strong>${code}</strong>번 방 호스트와 P2P 연결을 시도하고 있습니다...`;
+
+      peer = new Peer();
+      peer.on('open', () => {
+        conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+        setupDataConnection();
+      });
+
+      peer.on('error', (err) => {
+        setConnectionStatus('error', '방 입장 실패');
+        document.getElementById('joinStatusHelp').innerHTML = `<i class="fa-solid fa-circle-exclamation text-rose-400 mr-1"></i> 방을 찾을 수 없거나 연결에 실패했습니다. 방 번호를 다시 확인해주세요.`;
+        showToast('해당 방 코드를 찾을 수 없습니다.');
+      });
+    }
+
+    function setupDataConnection() {
+      conn.on('open', () => {
+        setConnectionStatus('connected', `연결됨 (#${currentRoomCode})`);
+        showToast('상대방과 연결되었습니다! 대국을 시작합니다.');
+        appendChatLog('시스템', '상대방과 실시간 P2P 연결이 완료되었습니다! 🎉', 'text-emerald-400');
+
+        if (gameMode === 'host') {
+          document.getElementById('hostStatusHelp').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> <strong>연결 완료!</strong> 상대방(백돌)이 입장했습니다. 흑돌부터 착수하세요.`;
+        } else {
+          document.getElementById('joinStatusHelp').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> <strong>연결 완료!</strong> 호스트(흑돌)의 첫 수를 기다리세요.`;
+        }
+
+        resetBoardState();
+      });
+
+      conn.on('data', (data) => {
+        if (!data || !data.type) return;
+
+        switch (data.type) {
+          case 'MOVE':
+            executeMove(data.r, data.c, data.color, false);
+            break;
+
+          case 'CHAT':
+            receiveChatMessage(data.text, data.senderColor);
+            break;
+
+          case 'UNDO_REQ':
+            showBoardOverlay(
+              'fa-rotate-left',
+              '상대방의 무르기 요청',
+              '상대방이 방금 둔 수를 무르고 싶어 합니다. 수락하시겠습니까?',
+              [
+                {
+                  label: '수락',
+                  primary: true,
+                  onClick: () => {
+                    closeBoardOverlay();
+                    // If opponent just moved, undo 1 step; if both moved, undo 2 steps
+                    const steps = currentTurn === myColor ? 1 : 2;
+                    performUndoStep(Math.min(steps, moveHistory.length));
+                    conn.send({ type: 'UNDO_RES', accepted: true, steps: Math.min(steps, moveHistory.length) });
+                    showToast('무르기를 수락했습니다.');
+                  }
+                },
+                {
+                  label: '거절',
+                  primary: false,
+                  onClick: () => {
+                    closeBoardOverlay();
+                    conn.send({ type: 'UNDO_RES', accepted: false });
+                  }
+                }
+              ]
+            );
+            break;
+
+          case 'UNDO_RES':
+            if (data.accepted) {
+              performUndoStep(data.steps || 1);
+              showToast('상대방이 무르기를 수락했습니다.');
+            } else {
+              showToast('상대방이 무르기 요청을 거절했습니다.');
+            }
+            break;
+
+          case 'REMATCH_REQ':
+            showBoardOverlay(
+              'fa-arrows-rotate',
+              '재대국 신청 도착',
+              '상대방이 새 판으로 재대국을 신청했습니다. 수락하시겠습니까? (흑/백 교대)',
+              [
+                {
+                  label: '수락하고 시작',
+                  primary: true,
+                  onClick: () => {
+                    closeBoardOverlay();
+                    swapColorsAndRestart();
+                    conn.send({ type: 'REMATCH_ACCEPT' });
+                  }
+                },
+                {
+                  label: '거절',
+                  primary: false,
+                  onClick: () => closeBoardOverlay()
+                }
+              ]
+            );
+            break;
+
+          case 'REMATCH_ACCEPT':
+            swapColorsAndRestart();
+            showToast('재대국이 시작됩니다! (흑/백 교대)');
+            break;
+
+          case 'RESIGN':
+            handleResignation(data.color, false);
+            break;
+        }
+      });
+
+      conn.on('close', () => {
+        setConnectionStatus('error', '상대방 연결 끊김');
+        stopTurnTimer();
+        appendChatLog('시스템', '상대방과의 연결이 종료되었습니다.', 'text-rose-400');
+        showToast('상대방과의 연결이 끊어졌습니다.');
+      });
+    }
+
+    function swapColorsAndRestart() {
+      myColor = myColor === BLACK ? WHITE : BLACK;
+      const badgeBlack = document.getElementById('badgeBlackMe');
+      const badgeWhite = document.getElementById('badgeWhiteMe');
+      if (myColor === BLACK) {
+        badgeBlack.classList.remove('hidden');
+        badgeWhite.classList.add('hidden');
+      } else {
+        badgeBlack.classList.add('hidden');
+        badgeWhite.classList.remove('hidden');
+      }
+      resetBoardState();
+    }
+
+    function startNewLocalGame() {
+      resetBoardState();
+      showToast('오프라인 2인 새 대국이 시작되었습니다.');
+    }
+
+    /**************************************************************
+     * 8. CHAT, EMOJI REACTIONS & CLIPBOARD HELPERS
+     **************************************************************/
+    function sendChatMessage(text) {
+      if (!text || !text.trim()) return;
+      const clean = text.trim();
+      const senderColor = gameMode === 'local' ? currentTurn : myColor;
+
+      if (gameMode !== 'local' && conn && conn.open) {
+        conn.send({ type: 'CHAT', text: clean, senderColor });
+      }
+
+      const senderLabel = senderColor === BLACK ? '흑돌(나)' : '백돌(나)';
+      appendChatLog(senderLabel, clean, 'text-amber-300');
+      showSpeechBubble(senderColor, clean);
+      playChatPop();
+    }
+
+    function submitCustomChat() {
+      const input = document.getElementById('chatInput');
+      if (!input.value.trim()) return;
+      sendChatMessage(input.value);
+      input.value = '';
+    }
+
+    function receiveChatMessage(text, senderColor) {
+      const senderLabel = senderColor === BLACK ? '흑돌(상대)' : '백돌(상대)';
+      appendChatLog(senderLabel, text, 'text-sky-300');
+      showSpeechBubble(senderColor, text);
+      playChatPop();
+    }
+
+    function appendChatLog(sender, message, colorClass = 'text-slate-200') {
+      const log = document.getElementById('chatLog');
+      const item = document.createElement('div');
+      item.className = 'leading-relaxed';
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = `font-bold mr-1.5 ${colorClass}`;
+      nameSpan.textContent = `[${sender}]`;
+
+      const msgSpan = document.createElement('span');
+      msgSpan.className = 'text-slate-200';
+      msgSpan.textContent = message;
+
+      item.appendChild(nameSpan);
+      item.appendChild(msgSpan);
+      log.appendChild(item);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function showSpeechBubble(color, text) {
+      const bubbleWrapper = document.getElementById(color === BLACK ? 'bubbleBlack' : 'bubbleWhite');
+      const inner = bubbleWrapper.firstElementChild;
+      inner.textContent = text;
+      bubbleWrapper.classList.remove('hidden', 'chat-bubble-anim');
+      void bubbleWrapper.offsetWidth; // Reflow to restart animation
+      bubbleWrapper.classList.add('chat-bubble-anim');
+    }
+
+    function copyTextToClipboard(text, successMsg) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast(successMsg);
+      } catch (err) {
+        showToast('복사에 실패했습니다. 직접 복사해주세요.');
+      }
+      document.body.removeChild(textarea);
+    }
+
+    function copyRoomCode() {
+      if (!currentRoomCode) return;
+      copyTextToClipboard(currentRoomCode, `방 코드(${currentRoomCode})가 복사되었습니다!`);
+    }
+
+    function copyInviteLink() {
+      if (!currentRoomCode) return;
+      const baseUrl = window.location.href.split('?')[0];
+      const inviteUrl = `${baseUrl}?room=${currentRoomCode}`;
+      copyTextToClipboard(inviteUrl, '초대 링크가 복사되었습니다! 친구에게 전송하세요.');
+    }
+
+    function showToast(message) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'bg-slate-900/95 border border-amber-500/50 text-slate-100 px-4 py-2.5 rounded-xl shadow-2xl text-xs sm:text-sm font-medium flex items-center gap-2 transition-all duration-300';
+      toast.innerHTML = `<i class="fa-solid fa-bell text-amber-400"></i> <span></span>`;
+      toast.querySelector('span').textContent = message;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 2800);
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    /**************************************************************
+     * 9. INITIALIZATION & AUTO-JOIN VIA ?room=XXXX
+     **************************************************************/
+    window.addEventListener('resize', resizeCanvas);
+
+    window.onload = function () {
+      // Set initial checkbox state
+      document.getElementById('confirmMoveToggle').checked = confirmMoveMode;
+      resizeCanvas();
+
+      // Check URL parameter ?room=XXXX
+      const params = new URLSearchParams(window.location.search);
+      const roomParam = params.get('room');
+      if (roomParam && roomParam.trim().length === 4) {
+        switchModeTab('join');
+        document.getElementById('joinCodeInput').value = roomParam.trim();
+        setTimeout(() => {
+          joinHostRoom();
+        }, 300);
+      } else {
+        switchModeTab('host');
+      }
+    };
+  </script>
+</body>
+</html>
