@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>클라우드 수담(手談) 바둑 - 실시간 대기실 & 한/중 정밀 계가</title>
+  <title>클라우드 수담(手談) 바둑 - 실시간 대기실 · 관전 · 정밀 계가</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js"></script>
@@ -30,7 +30,7 @@
         </div>
         <h1 class="text-sm sm:text-base font-black text-amber-400 tracking-tight flex items-center gap-2">
           클라우드 수담(手談) 바둑
-          <span class="hidden md:inline-block text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">9~19줄 · 귀곡사/사활 자동판정</span>
+          <span class="hidden md:inline-block text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">9~19줄 · 실시간 관전 · 귀곡사 자동판정</span>
         </h1>
       </div>
 
@@ -98,15 +98,15 @@
         <div class="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400 text-2xl mb-3">
           <i class="fa-solid fa-chess-board"></i>
         </div>
-        <h3 class="text-sm sm:text-base font-bold text-slate-200">현재 대기 중인 대국실이 없습니다</h3>
-        <p class="text-xs text-slate-400 mt-1 max-w-md">우측 상단 <strong>[+ 방 만들기]</strong>로 9~19줄 바둑판과 한국/중국 계가 규칙을 설정해 대국실을 개설해 보세요.</p>
+        <h3 class="text-sm sm:text-base font-bold text-slate-200">현재 개설된 대국실이 없습니다</h3>
+        <p class="text-xs text-slate-400 mt-1 max-w-md">우측 상단 <strong>[+ 방 만들기]</strong>로 9~19줄 바둑판과 한국/중국 계가 규칙을 설정해 대국실을 개설하거나 다른 사람의 대국을 실시간 관전해 보세요.</p>
       </div>
 
       <div id="roomGrid" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3"></div>
     </div>
   </main>
 
-  <!-- VIEW 2: ACTIVE BADUK GAME VIEW -->
+  <!-- VIEW 2: ACTIVE BADUK GAME & SPECTATOR VIEW -->
   <main id="gameView" class="hidden flex-1 max-w-6xl w-full mx-auto px-2.5 sm:px-6 py-2.5 sm:py-4 grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
 
     <!-- Right Column (First on Mobile): Top Timer Bar + Baduk Board + Bottom Action Bar -->
@@ -145,7 +145,7 @@
         </div>
       </div>
 
-      <!-- OUTSIDE BOTTOM CONTROL BAR ('착수', '한수쉼', '계가', '기권') -->
+      <!-- PLAYER OUTSIDE BOTTOM CONTROL BAR ('착수', '한수쉼', '계가', '기권') -->
       <div id="extBar" class="w-full max-w-[560px] bg-slate-900/95 border border-slate-700 rounded-2xl px-3 py-2.5 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
         <div class="flex items-center justify-between sm:justify-start gap-2 min-w-0">
           <div class="flex items-center gap-2 min-w-0">
@@ -177,6 +177,22 @@
           </button>
         </div>
       </div>
+
+      <!-- SPECTATOR DEDICATED BOTTOM STATUS BAR -->
+      <div id="specBar" class="hidden w-full max-w-[560px] bg-purple-950/60 border border-purple-500/50 rounded-2xl px-3.5 py-2.5 shadow-xl flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5">
+          <span class="px-2.5 py-1 rounded-xl bg-purple-500/30 border border-purple-400/40 text-purple-200 text-xs font-black">
+            👁️ 관전 모드
+          </span>
+          <div>
+            <div class="text-xs font-bold text-purple-100">실시간 관전 중 · 착수 및 계가 조작 불가</div>
+            <div class="text-[10px] text-purple-300">자체 형세판단(집 표시), 기보 텍스트 복사 및 관전 채팅이 가능합니다</div>
+          </div>
+        </div>
+        <button onclick="copyKifuText()" class="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 text-xs font-bold flex items-center gap-1">
+          <i class="fa-regular fa-copy"></i> 기보 텍스트 복사
+        </button>
+      </div>
     </section>
 
     <!-- Left Column (Second on Mobile): Room Info, Players, Scoring Panel, Kifu Copy, Chat -->
@@ -184,13 +200,15 @@
       <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 flex items-center justify-between gap-2">
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-1">
+            <span id="badgeSpecMode" class="hidden text-[11px] font-black px-2 py-0.5 rounded bg-purple-500 text-white">👁️ 관전 모드</span>
             <span id="badgeSize" class="text-[11px] font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">19줄</span>
             <span id="badgeRule" class="text-[11px] font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">한국 규칙(덤 6.5)</span>
             <span id="badgeTime" class="text-[11px] font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300">30초 초읽기</span>
+            <span id="badgeSpecCount" class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700">👁️ 관전 0명</span>
           </div>
           <h2 id="roomTitleLabel" class="text-sm font-black text-white truncate mt-1">바둑 대국실</h2>
         </div>
-        <button onclick="leaveToLobby()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950 border border-slate-700 text-xs font-bold text-slate-200 shrink-0 transition">
+        <button id="leaveBtn" onclick="leaveToLobby()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950 border border-slate-700 text-xs font-bold text-slate-200 shrink-0 transition">
           <i class="fa-solid fa-pause mr-1"></i>대기실로 (일시정지)
         </button>
       </div>
@@ -231,12 +249,12 @@
         <div id="scoringBox" class="hidden bg-slate-950 border-2 border-amber-500/70 rounded-xl p-3 space-y-2">
           <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
             <span class="text-xs font-black text-amber-300"><i class="fa-solid fa-calculator mr-1"></i>정밀 사활·귀곡사 판정 및 계가</span>
-            <button onclick="runAutoLifeDeath(true)" class="text-[11px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold">
+            <button id="btnAutoJudge" onclick="runAutoLifeDeath(true)" class="text-[11px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold">
               🔍 사활 자동 재판정
             </button>
           </div>
           <div id="specialShapeAlert" class="hidden text-[11px] bg-purple-950/80 border border-purple-500/50 text-purple-200 px-2.5 py-1.5 rounded-lg font-semibold"></div>
-          <p class="text-[11px] text-slate-300">바둑판의 돌을 클릭해 사석(<strong>X</strong>)을 직접 수정할 수 있으며, 이견이 있으면 <strong>[⚔️ 대국 재개]</strong>로 실전 해결하세요.</p>
+          <p id="scoringHintText" class="text-[11px] text-slate-300">바둑판의 돌을 클릭해 사석(<strong>X</strong>)을 직접 수정할 수 있으며, 이견이 있으면 <strong>[⚔️ 대국 재개]</strong>로 실전 해결하세요.</p>
           <div class="grid grid-cols-2 gap-2 text-xs">
             <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
               <div class="flex justify-between font-bold"><span>⚫ 흑 총점</span><span id="totBlack" class="text-amber-400 font-black">0집</span></div>
@@ -264,7 +282,7 @@
         <!-- Option Toggles & Kifu Text Copy Button -->
         <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
           <div class="flex items-center gap-3">
-            <label class="flex items-center gap-1 cursor-pointer text-slate-300">
+            <label id="lblConfirmWrap" class="flex items-center gap-1 cursor-pointer text-slate-300">
               <input id="chkConfirm" type="checkbox" checked onchange="toggleConfirmMode(this.checked)" class="accent-amber-500" /> 착수 확인
             </label>
             <label class="flex items-center gap-1 cursor-pointer text-slate-300">
@@ -278,7 +296,7 @@
             <button onclick="copyKifuText()" class="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold flex items-center gap-1">
               <i class="fa-regular fa-copy"></i> 기보 텍스트 복사
             </button>
-            <button onclick="requestUndo()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold">
+            <button id="btnUndo" onclick="requestUndo()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold">
               <i class="fa-solid fa-rotate-left"></i> 무르기
             </button>
           </div>
@@ -367,30 +385,30 @@
 
   <script>
     const EMPTY = 0, BLACK = 1, WHITE = 2;
-    // Consecutive alphabet A~S for Kifu notation ('E5 E3 E7 G3 F4')
     const KIFU_COLS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S'];
-    const LOBBY_TOPIC = 'baduk_kr_lobby_2026_v3/rooms';
-    const SAVE_KEY = 'baduk_paused_match_v3';
+    const LOBBY_TOPIC = 'baduk_kr_lobby_2026_v4/rooms';
+    const SAVE_KEY = 'baduk_paused_match_v4';
 
     let myName = localStorage.getItem('baduk_nick') || `기사#${Math.floor(1000+Math.random()*9000)}`;
     let soundOn = true, audioCtx = null;
     let modalTarget = 'online', cfg = { size: 19, stone: 'random', rule: 'korean', time: 30 };
 
-    // Active Game State
+    // Active Game State ('host' | 'join' | 'spectate' | 'local')
     let mode = 'host', roomInfo = {}, N = 19, board = [], history = [], hashes = [];
     let koPoint = null, passes = 0, turn = BLACK, myColor = BLACK;
     let names = { 1: '흑돌', 2: '백돌' }, caps = { 1: 0, 2: 0 };
     let started = false, ended = false, paused = false, scoring = false, previewTerr = false;
     let confirmMode = true, showNumbers = false, pending = null, hover = null;
     let deadSet = new Set(), sekiSet = new Set(), shapeLabels = [], agreed = { 1: false, 2: false };
-    let timeLeft = 30, timerId = null;
+    let timeLeft = 30, timerId = null, specCount = 0;
 
-    // Networking
-    let mqttClient = null, bc = null, rooms = new Map(), hbTimer = null, peer = null, conn = null;
+    // Networking: Host manages playerConn + spectatorConns[]
+    let mqttClient = null, bc = null, rooms = new Map(), hbTimer = null;
+    let peer = null, playerConn = null, spectatorConns = [];
 
-    function coordToNotation(r, c) {
-      return `${KIFU_COLS[c] || 'A'}${N - r}`;
-    }
+    function isSpectator() { return mode === 'spectate'; }
+
+    function coordToNotation(r, c) { return `${KIFU_COLS[c] || 'A'}${N - r}`; }
 
     function getKifuString() {
       if (!history.length) return '';
@@ -399,24 +417,15 @@
 
     function copyKifuText() {
       const kifu = getKifuString();
-      if (!kifu) {
-        toast('아직 기록된 수순(기보)이 없습니다.');
-        return;
-      }
+      if (!kifu) { toast('아직 기록된 수순(기보)이 없습니다.'); return; }
       const ta = document.createElement('textarea');
-      ta.value = kifu;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
+      ta.value = kifu; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
       try {
         document.execCommand('copy');
         const preview = kifu.length > 32 ? kifu.slice(0, 32) + '...' : kifu;
         toast(`📋 기보 복사 완료: ${preview}`);
-      } catch (e) {
-        toast('기보 복사에 실패했습니다.');
-      }
+      } catch (e) { toast('기보 복사에 실패했습니다.'); }
       document.body.removeChild(ta);
     }
 
@@ -451,7 +460,7 @@
     // Lobby Networking (MQTT + BroadcastChannel)
     function initLobby() {
       if ('BroadcastChannel' in window) {
-        bc = new BroadcastChannel('baduk_lobby_v3');
+        bc = new BroadcastChannel('baduk_lobby_v4');
         bc.onmessage = (e) => handleLobbyMsg(e.data);
       }
       try {
@@ -483,7 +492,9 @@
 
     function announceHostRoom() {
       if (mode !== 'host' || !roomInfo.id) return;
-      const r = { ...roomInfo, moves: history.length, timeLeft };
+      spectatorConns = spectatorConns.filter(c => c && c.open);
+      specCount = spectatorConns.length;
+      const r = { ...roomInfo, moves: history.length, timeLeft, spectators: specCount };
       rooms.set(r.id, { ...r, ts: Date.now() });
       pubLobby({ type: 'ANNOUNCE', room: r });
     }
@@ -502,36 +513,48 @@
       empty.classList.add('hidden'); grid.classList.remove('hidden');
       grid.innerHTML = '';
       list.forEach(r => {
-        const isPaused = r.status === 'paused', canJoin = r.status === 'waiting' || isPaused;
+        const isPaused = r.status === 'paused', canPlay = r.status === 'waiting' || isPaused;
         const d = document.createElement('div');
         d.className = `bg-slate-950 border ${isPaused ? 'border-amber-400' : 'border-slate-800'} rounded-2xl p-4 flex flex-col justify-between gap-3`;
         d.innerHTML = `
           <div>
             <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
-              <span class="text-[11px] font-black px-2 py-0.5 rounded-full ${isPaused ? 'bg-amber-500/20 text-amber-300' : (canJoin ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300')}">
-                ${isPaused ? `⏸️ 일시정지 · 재입장 가능 (${r.moves||0}수)` : (canJoin ? '🟢 대기 중 (1/2)' : `🔴 대국 중 (${r.moves||0}수)`)}
+              <span class="text-[11px] font-black px-2 py-0.5 rounded-full ${isPaused ? 'bg-amber-500/20 text-amber-300' : (canPlay ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300')}">
+                ${isPaused ? `⏸️ 일시정지 · 재입장 대기 (${r.moves||0}수)` : (canPlay ? '🟢 대기 중 (1/2)' : `🔴 대국 중 (${r.moves||0}수)`)}
               </span>
               <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-emerald-300">${r.size}줄</span>
               <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-purple-300">${r.rule === 'chinese' ? '중국(7.5)' : '한국(6.5)'}</span>
               <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-sky-300">${r.time ? r.time + '초' : '무제한'}</span>
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-purple-950 border border-purple-700/50 text-purple-200">👁️ 관전 ${r.spectators || 0}명</span>
             </div>
             <h3 class="text-sm sm:text-base font-black text-white truncate">${r.title}</h3>
-            <p class="text-xs text-slate-400 mt-0.5">방장: <strong class="text-slate-200">${r.host}</strong> ${isPaused ? `| 남은 초읽기: ${r.time ? r.timeLeft+'초' : '무제한'}` : ''}</p>
+            <p class="text-xs text-slate-400 mt-0.5">방장: <strong class="text-slate-200">${r.host}</strong> ${r.guest && r.guest !== '대기 중' ? `vs <strong class="text-slate-200">${r.guest}</strong>` : ''}</p>
           </div>
-          <div class="flex justify-end">
-            <button class="px-4 py-2 rounded-xl font-black text-xs ${canJoin ? 'bg-amber-500 hover:bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}" ${canJoin ? '' : 'disabled'}>
-              ${isPaused ? '▶️ 재입장 · 이어하기' : (canJoin ? '입장하기' : '대국 진행 중')}
-            </button>
+          <div class="flex items-center justify-end gap-2">
+            ${canPlay ? `
+              <button data-act="play" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow">
+                ${isPaused ? '▶️ 재입장 · 이어하기' : '대국 입장'}
+              </button>
+              <button data-act="spec" class="px-3 py-2 rounded-xl bg-purple-950/90 hover:bg-purple-900 border border-purple-600/60 text-purple-200 font-bold text-xs">
+                👁️ 관전
+              </button>
+            ` : `
+              <button data-act="spec" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs shadow flex items-center gap-1.5">
+                👁️ 관전하기 (${r.moves||0}수 진행 중)
+              </button>
+            `}
           </div>`;
-        if (canJoin) d.querySelector('button').onclick = () => joinOnlineRoom(r);
+        const playBtn = d.querySelector('[data-act="play"]');
+        if (playBtn) playBtn.onclick = () => joinOnlineRoom(r, false);
+        const specBtn = d.querySelector('[data-act="spec"]');
+        if (specBtn) specBtn.onclick = () => joinOnlineRoom(r, true);
         grid.appendChild(d);
       });
     }
 
     // Room Setup Modal
     function openRoomModal(target) {
-      saveNickname();
-      modalTarget = target;
+      saveNickname(); modalTarget = target;
       document.getElementById('modalHeader').textContent = target === 'local' ? '1기기 2인 바둑 설정' : '새 온라인 바둑 대국실 만들기';
       document.getElementById('titleRow').classList.toggle('hidden', target === 'local');
       document.getElementById('roomModal').classList.remove('hidden');
@@ -564,19 +587,67 @@
       document.getElementById('badgeSize').textContent = `${roomInfo.size}줄 바둑`;
       document.getElementById('badgeRule').textContent = roomInfo.rule === 'chinese' ? '🇨🇳 중국 규칙(덤 7.5)' : '🇰🇷 한국 규칙(덤 6.5)';
       document.getElementById('badgeTime').textContent = roomInfo.time ? `⏱️ ${roomInfo.time}초 초읽기` : '♾️ 무제한';
+
+      const spec = isSpectator();
+      document.getElementById('badgeSpecMode').classList.toggle('hidden', !spec);
+      document.getElementById('extBar').classList.toggle('hidden', spec);
+      document.getElementById('specBar').classList.toggle('hidden', !spec);
+      document.getElementById('lblConfirmWrap').classList.toggle('hidden', spec);
+      document.getElementById('btnUndo').classList.toggle('hidden', spec);
+      document.getElementById('btnAutoJudge').classList.toggle('hidden', spec);
+      document.getElementById('leaveBtn').innerHTML = spec
+        ? '<i class="fa-solid fa-door-open mr-1"></i>관전 종료 (대기실로)'
+        : '<i class="fa-solid fa-pause mr-1"></i>대기실로 (일시정지)';
+
+      updateSpecCountBadge();
       setTimeout(resizeCanvas, 30);
     }
 
+    function updateSpecCountBadge() {
+      document.getElementById('badgeSpecCount').textContent = `👁️ 관전 ${specCount}명`;
+    }
+
+    // Host Multicast Helper: Send to Opponent + All Spectators
+    function sendToOpponent(pkt) {
+      if (playerConn && playerConn.open) try { playerConn.send(pkt); } catch (e) {}
+    }
+
+    function sendToSpectators(pkt) {
+      spectatorConns = spectatorConns.filter(c => c && c.open);
+      spectatorConns.forEach(c => { try { c.send(pkt); } catch (e) {} });
+    }
+
+    function broadcastFromHost(pkt) {
+      sendToOpponent(pkt);
+      sendToSpectators(pkt);
+    }
+
+    function syncSpecCountFromHost() {
+      spectatorConns = spectatorConns.filter(c => c && c.open);
+      specCount = spectatorConns.length;
+      updateSpecCountBadge();
+      broadcastFromHost({ type: 'SPEC_COUNT', count: specCount });
+      announceHostRoom();
+    }
+
+    function buildSyncPayload(gCol = WHITE) {
+      return {
+        type: 'SYNC_STATE', roomInfo, N, board, history, hashes, koPoint, passes,
+        turn, gCol, names, caps, timeLeft, started, ended, paused, scoring,
+        deadArr: Array.from(deadSet), specCount,
+        historyCoords: getKifuString()
+      };
+    }
+
     function createHostRoom() {
-      cleanupPeer();
-      mode = 'host';
+      cleanupPeer(); mode = 'host'; specCount = 0;
       const id = 'bdk_rm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
       roomInfo = { id, title: document.getElementById('roomTitleInput').value.trim() || '수담 한 판!', host: myName, guest: '대기 중', ...cfg, status: 'waiting' };
       initEmptyBoard(cfg.size);
       started = false; ended = false; paused = false; scoring = false;
       timeLeft = cfg.time || 0;
       showGameView();
-      setWaitBanner(true, '대기실에서 상대방 입장을 기다리는 중...', '방 목록에서 상대가 입장하면 자동으로 시작됩니다.');
+      setWaitBanner(true, '대기실에서 상대방 입장을 기다리는 중...', '대국자 또는 관전자가 실시간으로 입장할 수 있습니다.');
       updateUI();
 
       peer = new Peer(id);
@@ -584,39 +655,32 @@
         announceHostRoom();
         hbTimer = setInterval(announceHostRoom, 2800);
       });
-      peer.on('connection', c => {
-        if (conn && conn.open) { c.close(); return; }
-        conn = c; bindConnection();
-      });
+      peer.on('connection', c => bindHostIncomingConnection(c));
     }
 
-    function joinOnlineRoom(r) {
-      saveNickname(); cleanupPeer();
-      mode = 'join'; roomInfo = { ...r, guest: myName };
-      initEmptyBoard(r.size);
-      showGameView();
-      setWaitBanner(true, '방장과 연결 중입니다...', '잠시만 기다려 주세요.');
-      peer = new Peer();
-      peer.on('open', () => { conn = peer.connect(r.id, { reliable: true }); bindConnection(); });
-      peer.on('error', () => { toast('방에 연결할 수 없습니다.'); leaveToLobby(); });
-    }
-
-    function startLocalMatch() {
-      cleanupPeer(); mode = 'local';
-      roomInfo = { id: 'local', title: `1기기 2인 대국 (${cfg.size}줄)`, host: `${myName}(1P)`, guest: '2P 기사', ...cfg, status: 'playing' };
-      showGameView();
-      setWaitBanner(false);
-      assignColorsAndStart();
-    }
-
-    function bindConnection() {
-      conn.on('open', () => {
-        setConnUI(true, 'P2P 대국 연결됨');
-        if (mode === 'join') conn.send({ type: 'HELLO', name: myName });
-      });
-      conn.on('data', d => {
+    function bindHostIncomingConnection(c) {
+      c.on('data', d => {
         if (!d || !d.type) return;
-        if (d.type === 'HELLO' && mode === 'host') {
+        // 1. Third-Party Spectator Connection
+        if (d.type === 'JOIN_SPECTATOR') {
+          c._isSpectator = true;
+          c._specName = d.name || '관전자';
+          spectatorConns.push(c);
+          syncSpecCountFromHost();
+          c.send(buildSyncPayload(WHITE));
+          const joinNotice = `👁️ [${c._specName}]님이 관전을 시작했습니다. (현재 관전 ${specCount}명)`;
+          logChat('시스템', joinNotice);
+          broadcastFromHost({ type: 'CHAT', sender: '시스템', text: joinNotice });
+          return;
+        }
+        // 2. Opponent Player Connection
+        if (d.type === 'HELLO') {
+          if (playerConn && playerConn.open && playerConn !== c) {
+            c.send({ type: 'ERROR', msg: '이미 대국자가 입장했습니다. 관전 모드로 전환됩니다.' });
+            return;
+          }
+          c._isSpectator = false;
+          playerConn = c;
           roomInfo.guest = d.name || '상대 기사';
           setWaitBanner(false);
           if (started && !ended && (paused || history.length > 0)) {
@@ -625,54 +689,149 @@
             names[myColor] = myName; names[gCol] = roomInfo.guest;
             roomInfo.status = scoring ? 'scoring' : 'playing';
             announceHostRoom();
-            conn.send({
-              type: 'RESUME_SYNC', roomInfo, N, board, history, hashes, koPoint, passes,
-              turn, gCol, names, caps, timeLeft, scoring, deadArr: Array.from(deadSet)
-            });
+            const syncPkt = buildSyncPayload(gCol);
+            playerConn.send(syncPkt);
+            sendToSpectators(syncPkt);
             if (!scoring) startTimer(false);
             updateUI(); drawBoard();
-            logChat('시스템', `▶️ [${roomInfo.guest}]님이 재입장하여 ${history.length}수(남은 초읽기 ${timeLeft}초)부터 이어서 대국합니다!`);
+            const resumeMsg = `▶️ [${roomInfo.guest}]님이 재입장하여 ${history.length}수(남은 초읽기 ${timeLeft}초)부터 이어서 대국합니다!`;
+            logChat('시스템', resumeMsg);
+            broadcastFromHost({ type: 'CHAT', sender: '시스템', text: resumeMsg });
           } else {
             roomInfo.status = 'playing'; announceHostRoom();
             assignColorsAndStart();
           }
-        } else if (d.type === 'START') {
-          roomInfo = d.roomInfo; N = roomInfo.size; myColor = d.gCol; names = d.names;
-          initEmptyBoard(N); started = true; ended = false; paused = false; scoring = false; turn = BLACK;
-          setWaitBanner(false); logChat('시스템', d.msg); toast(d.msg);
-          startTimer(true); updateUI(); resizeCanvas(); saveMatch();
-        } else if (d.type === 'RESUME_SYNC') {
-          roomInfo = d.roomInfo; N = d.N; board = d.board; history = d.history; hashes = d.hashes;
-          koPoint = d.koPoint; passes = d.passes; turn = d.turn; myColor = d.gCol; names = d.names;
-          caps = d.caps; timeLeft = d.timeLeft; scoring = d.scoring; deadSet = new Set(d.deadArr || []);
-          started = true; ended = false; paused = false;
-          setWaitBanner(false);
-          if (scoring) runAutoLifeDeath(false); else startTimer(false);
-          updateUI(); resizeCanvas();
-          logChat('시스템', `▶️ 중단된 대국(${history.length}수, 남은 시간 ${timeLeft}초)을 이어서 시작합니다!`);
-        } else if (d.type === 'MOVE') placeStone(d.r, d.c, d.color, false);
-        else if (d.type === 'PASS') doPass(d.color, false);
-        else if (d.type === 'REQ_SCORE') {
-          showOverlay('계가 신청', '상대방이 사석 지정 및 계가를 신청했습니다. 동의하시겠습니까?', [
-            { label: '수락 (계가 진입)', primary: true, fn: () => { closeOverlay(); conn.send({ type: 'ENTER_SCORE' }); enterScoring(false); } },
-            { label: '거절 (계속 두기)', fn: () => closeOverlay() }
-          ]);
-        } else if (d.type === 'ENTER_SCORE') enterScoring(false);
-        else if (d.type === 'SYNC_DEAD') { deadSet = new Set(d.deadArr); agreed = { 1: false, 2: false }; updateScoreBoard(); drawBoard(); }
-        else if (d.type === 'RESUME_PLAY') resumeFromScoring(false);
-        else if (d.type === 'AGREE_SCORE') { agreed[d.color] = true; checkFinalizeScore(); }
-        else if (d.type === 'TIMEOUT') finishByTimeout(d.loser, false);
-        else if (d.type === 'RESIGN') finishByResign(d.loser, false);
-        else if (d.type === 'UNDO_REQ') {
-          showOverlay('무르기 요청', '상대방이 한 수 무르기를 요청했습니다.', [
-            { label: '수락', primary: true, fn: () => { closeOverlay(); const st = turn === myColor ? 1 : 2; doUndo(st); conn.send({ type: 'UNDO_DO', steps: st }); } },
-            { label: '거절', fn: () => closeOverlay() }
-          ]);
-        } else if (d.type === 'UNDO_DO') doUndo(d.steps);
-        else if (d.type === 'CHAT') logChat(d.sender, d.text);
-        else if (d.type === 'PAUSED_EXIT') handleOpponentPause(d.name);
+          return;
+        }
+
+        // 3. Messages from Spectator (Chat only)
+        if (c._isSpectator) {
+          if (d.type === 'CHAT') {
+            logChat(d.sender, d.text);
+            sendToOpponent(d);
+            spectatorConns.forEach(sc => { if (sc !== c && sc.open) sc.send(d); });
+          }
+          return;
+        }
+
+        // 4. Gameplay Actions from Opponent Player (Host executes & relays to all Spectators)
+        handleIncomingGamePacket(d, true);
       });
-      conn.on('close', () => { if (started && !ended) handleOpponentPause('상대방'); });
+
+      c.on('close', () => {
+        if (c._isSpectator) {
+          spectatorConns = spectatorConns.filter(sc => sc !== c);
+          syncSpecCountFromHost();
+        } else if (c === playerConn && started && !ended) {
+          handleOpponentPause('상대방');
+        }
+      });
+    }
+
+    function joinOnlineRoom(r, asSpectator = false) {
+      saveNickname(); cleanupPeer();
+      mode = asSpectator ? 'spectate' : 'join';
+      roomInfo = { ...r, guest: asSpectator ? r.guest : myName };
+      specCount = r.spectators || 0;
+      initEmptyBoard(r.size);
+      showGameView();
+      setWaitBanner(true, asSpectator ? '👁️ 관전 모드로 대국실에 연결 중...' : '방장과 연결 중입니다...', '잠시만 기다려 주세요.');
+      peer = new Peer();
+      peer.on('open', () => {
+        playerConn = peer.connect(r.id, { reliable: true });
+        playerConn.on('open', () => {
+          setConnUI(true, asSpectator ? '실시간 관전 연결됨' : 'P2P 대국 연결됨');
+          playerConn.send({ type: asSpectator ? 'JOIN_SPECTATOR' : 'HELLO', name: myName });
+        });
+        playerConn.on('data', d => handleIncomingGamePacket(d, false));
+        playerConn.on('close', () => {
+          if (isSpectator()) {
+            toast('대국실 연결이 종료되었습니다.');
+            leaveToLobby();
+          } else if (started && !ended) {
+            handleOpponentPause('방장');
+          }
+        });
+      });
+      peer.on('error', () => { toast('방에 연결할 수 없습니다.'); leaveToLobby(); });
+    }
+
+    function handleIncomingGamePacket(d, fromGuestToHost = false) {
+      if (!d || !d.type) return;
+      if (d.type === 'START') {
+        roomInfo = d.roomInfo; N = roomInfo.size;
+        if (!isSpectator()) myColor = d.gCol;
+        names = d.names; specCount = d.specCount || specCount;
+        initEmptyBoard(N); started = true; ended = false; paused = false; scoring = false; turn = BLACK;
+        setWaitBanner(false); logChat('시스템', d.msg); toast(d.msg);
+        startTimer(true); updateSpecCountBadge(); updateUI(); resizeCanvas();
+        if (!isSpectator()) saveMatch();
+      } else if (d.type === 'SYNC_STATE') {
+        roomInfo = d.roomInfo; N = d.N; board = d.board; history = d.history; hashes = d.hashes;
+        koPoint = d.koPoint; passes = d.passes; turn = d.turn;
+        if (!isSpectator()) myColor = d.gCol;
+        names = d.names; caps = d.caps; timeLeft = d.timeLeft;
+        started = d.started; ended = d.ended; paused = d.paused; scoring = d.scoring;
+        specCount = d.specCount || 0;
+        deadSet = new Set(d.deadArr || []);
+        setWaitBanner(!started || paused, paused ? `⏸️ 대국 일시정지 중 (남은 초읽기: ${timeLeft}초)` : '대국 시작 대기 중...', isSpectator() ? '대국이 시작되면 실시간으로 중계됩니다.' : '잠시만 기다려 주세요.');
+        if (scoring) runAutoLifeDeath(false);
+        else if (started && !paused && !ended) startTimer(false);
+        updateSpecCountBadge(); updateUI(); resizeCanvas();
+      } else if (d.type === 'SPEC_COUNT') {
+        specCount = d.count || 0; updateSpecCountBadge();
+      } else if (d.type === 'MOVE') {
+        placeStone(d.r, d.c, d.color, false);
+        if (fromGuestToHost) sendToSpectators(d);
+      } else if (d.type === 'PASS') {
+        doPass(d.color, false);
+        if (fromGuestToHost) sendToSpectators(d);
+      } else if (d.type === 'REQ_SCORE' && !isSpectator()) {
+        showOverlay('계가 신청', '상대방이 사석 지정 및 계가를 신청했습니다. 동의하시겠습니까?', [
+          { label: '수락 (계가 진입)', primary: true, fn: () => { closeOverlay(); broadcastFromHost({ type: 'ENTER_SCORE' }); if (mode === 'join') playerConn.send({ type: 'ENTER_SCORE' }); enterScoring(false); } },
+          { label: '거절 (계속 두기)', fn: () => closeOverlay() }
+        ]);
+      } else if (d.type === 'ENTER_SCORE') {
+        enterScoring(false);
+        if (fromGuestToHost) sendToSpectators(d);
+      } else if (d.type === 'SYNC_DEAD') {
+        deadSet = new Set(d.deadArr); agreed = { 1: false, 2: false }; updateScoreBoard(); drawBoard();
+        if (fromGuestToHost) sendToSpectators(d);
+      } else if (d.type === 'RESUME_PLAY') {
+        resumeFromScoring(false);
+        if (fromGuestToHost) sendToSpectators(d);
+      } else if (d.type === 'AGREE_SCORE') {
+        agreed[d.color] = true; checkFinalizeScore();
+        if (fromGuestToHost) sendToSpectators(d);
+      } else if (d.type === 'TIMEOUT') {
+        finishByTimeout(d.loser, false);
+        if (fromGuestToHost) sendToSpectators(d);
+      } else if (d.type === 'RESIGN') {
+        finishByResign(d.loser, false);
+        if (fromGuestToHost) sendToSpectators(d);
+      } else if (d.type === 'UNDO_REQ' && !isSpectator()) {
+        showOverlay('무르기 요청', '상대방이 한 수 무르기를 요청했습니다.', [
+          { label: '수락', primary: true, fn: () => { closeOverlay(); const st = turn === myColor ? 1 : 2; doUndo(st); const pkt = { type: 'UNDO_DO', steps: st }; if (mode === 'host') broadcastFromHost(pkt); else playerConn.send(pkt); } },
+          { label: '거절', fn: () => closeOverlay() }
+        ]);
+      } else if (d.type === 'UNDO_DO') {
+        doUndo(d.steps);
+        if (fromGuestToHost) sendToSpectators(d);
+      } else if (d.type === 'CHAT') {
+        logChat(d.sender, d.text);
+        if (fromGuestToHost) sendToSpectators(d);
+      } else if (d.type === 'PAUSED_EXIT') {
+        handleOpponentPause(d.name);
+        if (fromGuestToHost) sendToSpectators(d);
+      }
+    }
+
+    function startLocalMatch() {
+      cleanupPeer(); mode = 'local'; specCount = 0;
+      roomInfo = { id: 'local', title: `1기기 2인 대국 (${cfg.size}줄)`, host: `${myName}(1P)`, guest: '2P 기사', ...cfg, status: 'playing' };
+      showGameView();
+      setWaitBanner(false);
+      assignColorsAndStart();
     }
 
     function assignColorsAndStart() {
@@ -683,37 +842,40 @@
       myColor = hCol;
       names = { [hCol]: roomInfo.host, [gCol]: roomInfo.guest };
       const msg = `🎲 돌가르기 완료: 흑(선공) ${names[BLACK]} vs 백(덤) ${names[WHITE]}`;
-      if (mode === 'host' && conn && conn.open) conn.send({ type: 'START', roomInfo, gCol, names, msg });
+      if (mode === 'host') broadcastFromHost({ type: 'START', roomInfo, gCol, names, msg, specCount });
       initEmptyBoard(roomInfo.size);
       started = true; ended = false; paused = false; scoring = false; turn = BLACK;
       logChat('시스템', msg); toast(msg);
       startTimer(true); updateUI(); resizeCanvas(); saveMatch();
     }
 
-    // Pause on Leave & Resume on Re-entry
+    // Pause on Player Leave & Resume on Re-entry
     function handleOpponentPause(leaver) {
       if (paused || ended) return;
-      paused = true; stopTimer(); saveMatch();
+      paused = true; stopTimer();
+      if (!isSpectator()) saveMatch();
       logChat('시스템', `⏸️ ${leaver}님이 퇴장하여 초읽기가 ${timeLeft}초에서 일시정지되었습니다. 재입장 시 이어서 대국합니다.`);
-      toast('상대방 퇴장으로 초읽기가 일시정지되었습니다.');
+      toast('대국자 퇴장으로 초읽기가 일시정지되었습니다.');
       if (mode === 'join') {
         mode = 'host'; roomInfo.host = myName;
         roomInfo.id = 'bdk_rm_' + Date.now().toString(36);
         if (peer) try { peer.destroy(); } catch (e) {}
         peer = new Peer(roomInfo.id);
         peer.on('open', () => { roomInfo.status = 'paused'; announceHostRoom(); hbTimer = setInterval(announceHostRoom, 2800); });
-        peer.on('connection', c => { conn = c; bindConnection(); });
-      } else {
+        peer.on('connection', c => bindHostIncomingConnection(c));
+      } else if (mode === 'host') {
         roomInfo.status = 'paused'; announceHostRoom();
       }
-      setWaitBanner(true, `⏸️ 일시정지 중 (남은 초읽기: ${roomInfo.time ? timeLeft+'초' : '무제한'})`, '상대방이 대기실에서 [재입장 · 이어하기]를 누르면 즉시 재개됩니다.');
+      setWaitBanner(true, `⏸️ 일시정지 중 (남은 초읽기: ${roomInfo.time ? timeLeft+'초' : '무제한'})`, '대국자가 대기실에서 [재입장 · 이어하기]를 누르면 즉시 재개됩니다.');
       updateUI();
     }
 
     function leaveToLobby() {
-      if (started && !ended) {
+      if (!isSpectator() && started && !ended) {
         paused = true; stopTimer(); saveMatch();
-        if (conn && conn.open) try { conn.send({ type: 'PAUSED_EXIT', name: myName }); } catch (e) {}
+        const pkt = { type: 'PAUSED_EXIT', name: myName };
+        if (mode === 'host') broadcastFromHost(pkt);
+        else if (playerConn && playerConn.open) try { playerConn.send(pkt); } catch (e) {}
       }
       if (mode === 'host' && roomInfo.id) { pubLobby({ type: 'REMOVE', id: roomInfo.id }); rooms.delete(roomInfo.id); }
       cleanupPeer(); stopTimer(); closeOverlay();
@@ -723,7 +885,7 @@
     }
 
     function saveMatch() {
-      if (!started || ended) return;
+      if (isSpectator() || !started || ended) return;
       localStorage.setItem(SAVE_KEY, JSON.stringify({
         mode, roomInfo: { ...roomInfo, status: 'paused' }, N, board, history, hashes, koPoint, passes,
         turn, myColor, names, caps, timeLeft, scoring, deadArr: Array.from(deadSet)
@@ -761,13 +923,15 @@
         updateUI(); drawBoard();
         peer = new Peer(roomInfo.id);
         peer.on('open', () => { announceHostRoom(); hbTimer = setInterval(announceHostRoom, 2800); });
-        peer.on('connection', c => { conn = c; bindConnection(); });
+        peer.on('connection', c => bindHostIncomingConnection(c));
       }
     }
 
     function cleanupPeer() {
       if (hbTimer) { clearInterval(hbTimer); hbTimer = null; }
-      if (conn) { try { conn.close(); } catch (e) {} conn = null; }
+      if (playerConn) { try { playerConn.close(); } catch (e) {} playerConn = null; }
+      spectatorConns.forEach(c => { try { c.close(); } catch (e) {} });
+      spectatorConns = [];
       if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
     }
 
@@ -823,6 +987,11 @@
       return { ok: true, next, h, captured, nextKo };
     }
 
+    function sendGameAction(pkt) {
+      if (mode === 'host') broadcastFromHost(pkt);
+      else if (mode === 'join' && playerConn && playerConn.open) playerConn.send(pkt);
+    }
+
     function placeStone(r, c, col, send = true) {
       if (!started || ended || paused || scoring) return;
       const v = validateMove(r, c, col);
@@ -833,7 +1002,7 @@
       caps[col] += v.captured.length;
       playClack(col === BLACK);
       pending = null;
-      if (send && mode !== 'local' && conn && conn.open) conn.send({ type: 'MOVE', r, c, color: col });
+      if (send && mode !== 'local') sendGameAction({ type: 'MOVE', r, c, color: col });
 
       turn = turn === BLACK ? WHITE : BLACK;
       startTimer(true); updateUI(); drawBoard(); saveMatch();
@@ -848,7 +1017,7 @@
     function doPass(col, send = true) {
       history.push({ pass: true, col, snap: board.map(row => row.slice()), caps: { ...caps }, ko: koPoint });
       koPoint = null; passes++; pending = null;
-      if (send && mode !== 'local' && conn && conn.open) conn.send({ type: 'PASS', color: col });
+      if (send && mode !== 'local') sendGameAction({ type: 'PASS', color: col });
       logChat('시스템', `⏭️ ${col === BLACK ? '흑' : '백'}이 [한수쉼]을 선언했습니다.`);
       if (passes >= 2) { enterScoring(false); return; }
       turn = turn === BLACK ? WHITE : BLACK;
@@ -870,7 +1039,6 @@
         }
       }
 
-      // 1. Detect isolated 1~2 stone throw-ins surrounded inside opponent's enclosure
       const throwInSet = new Set();
       chains.forEach(ch => {
         if (ch.stones.length <= 2 && ch.libs.size <= 2) {
@@ -880,7 +1048,6 @@
         }
       });
 
-      // 2. Check Corner Bent Four (귀곡사 - 隅曲四) in all 4 corners
       const corners = [
         { r0: 0, c0: 0, dr: 1, dc: 1 },
         { r0: 0, c0: N - 1, dr: 1, dc: -1 },
@@ -933,7 +1100,6 @@
         });
       });
 
-      // 3. Evaluate general Eye-space shapes (직삼궁/곡삼궁/방사궁/오궁도화/매화육궁/옥집) & Seki (빅)
       chains.forEach(ch => {
         if (deadSet.has(`${ch.stones[0][0]},${ch.stones[0][1]}`)) return;
         const libCoords = Array.from(ch.libs).map(s => s.split(',').map(Number));
@@ -976,7 +1142,7 @@
       else alertEl.classList.add('hidden');
 
       updateScoreBoard(); drawBoard();
-      if (notify && mode !== 'local' && conn && conn.open) conn.send({ type: 'SYNC_DEAD', deadArr: Array.from(deadSet) });
+      if (notify && !isSpectator() && mode !== 'local') sendGameAction({ type: 'SYNC_DEAD', deadArr: Array.from(deadSet) });
     }
 
     function computeScore() {
@@ -1021,7 +1187,10 @@
       const box = document.getElementById('scoringBox');
       if (!scoring && !previewTerr) { box.classList.add('hidden'); return; }
       box.classList.remove('hidden');
-      document.getElementById('scoringBtns').classList.toggle('hidden', !scoring);
+      document.getElementById('scoringBtns').classList.toggle('hidden', !scoring || isSpectator());
+      document.getElementById('scoringHintText').textContent = isSpectator()
+        ? '관전 모드에서는 대국자들의 사석 지정 및 계가 현황을 실시간으로 확인합니다.'
+        : '바둑판의 돌을 클릭해 사석(X)을 직접 수정할 수 있으며, 이견이 있으면 [⚔️ 대국 재개]로 실전 해결하세요.';
       const s = computeScore();
       document.getElementById('totBlack').textContent = `${s.totB}집`;
       document.getElementById('totWhite').textContent = `${s.totW}집`;
@@ -1031,31 +1200,34 @@
     }
 
     function requestScoring() {
-      if (!started || ended || paused || scoring) return;
+      if (isSpectator() || !started || ended || paused || scoring) return;
       if (mode === 'local') { enterScoring(false); return; }
-      if (conn && conn.open) { conn.send({ type: 'REQ_SCORE' }); toast('상대방에게 계가를 신청했습니다.'); }
+      sendGameAction({ type: 'REQ_SCORE' });
+      toast('상대방에게 계가를 신청했습니다.');
     }
 
     function enterScoring(send = false) {
       scoring = true; stopTimer(); pending = null; agreed = { 1: false, 2: false };
-      if (send && mode !== 'local' && conn && conn.open) conn.send({ type: 'ENTER_SCORE' });
+      document.getElementById('agreeScoreBtn').textContent = '✅ 계가 합의 완료';
+      if (send && mode !== 'local') sendGameAction({ type: 'ENTER_SCORE' });
       runAutoLifeDeath(false);
       updateUI();
-      logChat('시스템', '🧮 계가 단계입니다. 귀곡사 및 사활이 자동 판정되었습니다. 클릭하여 사석을 조정하거나 [계가 합의 완료]를 누르세요.');
+      logChat('시스템', '🧮 계가 단계입니다. 귀곡사 및 사활이 자동 판정되었습니다.');
     }
 
     function resumeFromScoring(send = true) {
       scoring = false; passes = 0; deadSet.clear(); shapeLabels = [];
-      if (send && mode !== 'local' && conn && conn.open) conn.send({ type: 'RESUME_PLAY' });
+      if (send && !isSpectator() && mode !== 'local') sendGameAction({ type: 'RESUME_PLAY' });
       startTimer(false); updateUI(); updateScoreBoard(); drawBoard();
       toast('⚔️ 대국이 재개되었습니다! 실전 착수로 생사를 해결하세요.');
     }
 
     function agreeScoring() {
+      if (isSpectator()) return;
       if (mode === 'local') { finalizeScoreGame(); return; }
       agreed[myColor] = true;
       document.getElementById('agreeScoreBtn').textContent = '상대방 합의 대기 중...';
-      if (conn && conn.open) conn.send({ type: 'AGREE_SCORE', color: myColor });
+      sendGameAction({ type: 'AGREE_SCORE', color: myColor });
       checkFinalizeScore();
     }
 
@@ -1067,11 +1239,10 @@
       scoring = false; ended = true; stopTimer(); clearSavedMatch();
       const s = computeScore();
       const wName = s.win === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
-      showOverlay(`🏆 ${wName} ${s.diff.toFixed(1)}집 승!`, `⚫ 흑: ${s.totB}집 vs ⚪ 백: ${s.totW}집 (덤 ${s.komi}집)\n최종 결과: ${wName}님이 ${s.diff.toFixed(1)}집 차이로 승리했습니다!`, [
-        { label: '📋 기보 텍스트 복사', fn: () => copyKifuText() },
-        { label: '새 대국 시작', primary: true, fn: () => { closeOverlay(); assignColorsAndStart(); } },
-        { label: '대기실로', fn: () => leaveToLobby() }
-      ]);
+      const btns = [{ label: '📋 기보 텍스트 복사', fn: () => copyKifuText() }];
+      if (!isSpectator()) btns.push({ label: '새 대국 시작', primary: true, fn: () => { closeOverlay(); assignColorsAndStart(); } });
+      btns.push({ label: '대기실로', fn: () => leaveToLobby() });
+      showOverlay(`🏆 ${wName} ${s.diff.toFixed(1)}집 승!`, `⚫ 흑: ${s.totB}집 vs ⚪ 백: ${s.totW}집 (덤 ${s.komi}집)\n최종 결과: ${wName}님이 ${s.diff.toFixed(1)}집 차이로 승리했습니다!`, btns);
       updateUI(); drawBoard();
     }
 
@@ -1087,7 +1258,7 @@
         timeLeft--; renderTimer();
         if (timeLeft <= 0) {
           stopTimer();
-          if (mode === 'local' || mode === 'host' || turn === myColor) finishByTimeout(turn, true);
+          if (!isSpectator() && (mode === 'local' || mode === 'host' || turn === myColor)) finishByTimeout(turn, true);
         }
       }, 1000);
     }
@@ -1104,20 +1275,19 @@
     function finishByTimeout(loser, send = true) {
       if (ended) return;
       ended = true; stopTimer(); clearSavedMatch();
-      if (send && mode !== 'local' && conn && conn.open) conn.send({ type: 'TIMEOUT', loser });
+      if (send && !isSpectator() && mode !== 'local') sendGameAction({ type: 'TIMEOUT', loser });
       const win = loser === BLACK ? WHITE : BLACK;
       const wStr = win === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
       const lStr = loser === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
-      showOverlay(`⏱️ 시간초과! ${wStr} 시간승!`, `${lStr}님이 초읽기 제한 시간(${roomInfo.time}초)을 초과하여 즉시 시간패 처리되었습니다.`, [
-        { label: '📋 기보 텍스트 복사', fn: () => copyKifuText() },
-        { label: '새 대국 시작', primary: true, fn: () => { closeOverlay(); assignColorsAndStart(); } },
-        { label: '대기실로', fn: () => leaveToLobby() }
-      ]);
+      const btns = [{ label: '📋 기보 텍스트 복사', fn: () => copyKifuText() }];
+      if (!isSpectator()) btns.push({ label: '새 대국 시작', primary: true, fn: () => { closeOverlay(); assignColorsAndStart(); } });
+      btns.push({ label: '대기실로', fn: () => leaveToLobby() });
+      showOverlay(`⏱️ 시간초과! ${wStr} 시간승!`, `${lStr}님이 초읽기 제한 시간(${roomInfo.time}초)을 초과하여 즉시 시간패 처리되었습니다.`, btns);
       updateUI();
     }
 
     function confirmResign() {
-      if (!started || ended) return;
+      if (isSpectator() || !started || ended) return;
       showOverlay('기권(불계패) 확인', '돌을 거두고 기권하시겠습니까?', [
         { label: '기권 선언', primary: true, fn: () => { closeOverlay(); finishByResign(mode === 'local' ? turn : myColor, true); } },
         { label: '취소', fn: () => closeOverlay() }
@@ -1127,21 +1297,21 @@
     function finishByResign(loser, send = true) {
       if (ended) return;
       ended = true; stopTimer(); clearSavedMatch();
-      if (send && mode !== 'local' && conn && conn.open) conn.send({ type: 'RESIGN', loser });
+      if (send && !isSpectator() && mode !== 'local') sendGameAction({ type: 'RESIGN', loser });
       const win = loser === BLACK ? WHITE : BLACK;
       const wStr = win === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
-      showOverlay(`🏳️ ${wStr} 불계승!`, `상대방의 기권 선언으로 ${wStr}님이 불계승을 거두었습니다.`, [
-        { label: '📋 기보 텍스트 복사', fn: () => copyKifuText() },
-        { label: '새 대국 시작', primary: true, fn: () => { closeOverlay(); assignColorsAndStart(); } },
-        { label: '대기실로', fn: () => leaveToLobby() }
-      ]);
+      const btns = [{ label: '📋 기보 텍스트 복사', fn: () => copyKifuText() }];
+      if (!isSpectator()) btns.push({ label: '새 대국 시작', primary: true, fn: () => { closeOverlay(); assignColorsAndStart(); } });
+      btns.push({ label: '대기실로', fn: () => leaveToLobby() });
+      showOverlay(`🏳️ ${wStr} 불계승!`, `상대방의 기권 선언으로 ${wStr}님이 불계승을 거두었습니다.`, btns);
       updateUI();
     }
 
     function requestUndo() {
-      if (!history.length || ended || paused || scoring) return;
+      if (isSpectator() || !history.length || ended || paused || scoring) return;
       if (mode === 'local') { doUndo(1); return; }
-      if (conn && conn.open) { conn.send({ type: 'UNDO_REQ' }); toast('무르기를 요청했습니다.'); }
+      sendGameAction({ type: 'UNDO_REQ' });
+      toast('무르기를 요청했습니다.');
     }
 
     function doUndo(steps = 1) {
@@ -1180,7 +1350,6 @@
       const { w, pad, cell } = metrics(); if (!w) return;
       ctx.clearRect(0, 0, w, w);
 
-      // Grid lines only (1~9 / A~I coordinate labels removed as requested)
       ctx.fillStyle = '#3f2305'; ctx.strokeStyle = '#331d05';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       for (let i = 0; i < N; i++) {
@@ -1191,18 +1360,15 @@
       }
       ctx.lineWidth = 2; ctx.strokeRect(pad, pad, cell * (N - 1), cell * (N - 1));
 
-      // Star Points
       starPoints(N).forEach(([r, c]) => {
         ctx.beginPath(); ctx.arc(pad + c * cell, pad + r * cell, Math.max(2.5, cell * 0.11), 0, Math.PI * 2); ctx.fill();
       });
 
-      // Ko Marker (Red Square)
       if (koPoint && !scoring) {
         const kx = pad + koPoint.c * cell, ky = pad + koPoint.r * cell, s = cell * 0.28;
         ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 2.2; ctx.strokeRect(kx - s, ky - s, s * 2, s * 2);
       }
 
-      // Preview Stone
       const pv = pending || hover;
       if (pv && canPlayNow() && board[pv.r][pv.c] === EMPTY) {
         ctx.save(); ctx.globalAlpha = pending ? 0.85 : 0.45;
@@ -1214,7 +1380,6 @@
         ctx.restore();
       }
 
-      // Stones & Dead Stone 'X' Markers
       const lastMove = [...history].reverse().find(m => !m.pass);
       for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
         const col = board[r][c]; if (col === EMPTY) continue;
@@ -1238,7 +1403,6 @@
         });
       }
 
-      // Territory Squares & Special Shape Labels (귀곡사, 오궁도화, 매화육궁, 빅)
       if (scoring || previewTerr) {
         const s = computeScore(), sq = Math.max(5, cell * 0.32);
         for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
@@ -1269,8 +1433,8 @@
     }
 
     function canPlayNow() {
-      if (!started || ended || paused || scoring) return false;
-      return mode === 'local' || (conn && conn.open && turn === myColor);
+      if (isSpectator() || !started || ended || paused || scoring) return false;
+      return mode === 'local' || (playerConn && playerConn.open && turn === myColor);
     }
 
     function pointerCell(e) {
@@ -1288,13 +1452,14 @@
     });
 
     cvs.addEventListener('click', e => {
+      if (isSpectator()) { toast('👁️ 관전 모드에서는 바둑판을 조작할 수 없습니다.'); return; }
       const pt = pointerCell(e); if (!pt) return;
       if (scoring) {
         if (board[pt.r][pt.c] !== EMPTY) {
           const g = getGroup(board, pt.r, pt.c), key = `${pt.r},${pt.c}`, mark = !deadSet.has(key);
           g.stones.forEach(([sr, sc]) => mark ? deadSet.add(`${sr},${sc}`) : deadSet.delete(`${sr},${sc}`));
           agreed = { 1: false, 2: false }; updateScoreBoard(); drawBoard();
-          if (mode !== 'local' && conn && conn.open) conn.send({ type: 'SYNC_DEAD', deadArr: Array.from(deadSet) });
+          if (mode !== 'local') sendGameAction({ type: 'SYNC_DEAD', deadArr: Array.from(deadSet) });
         }
         return;
       }
@@ -1322,23 +1487,26 @@
       document.getElementById('cardWhite').classList.toggle('active-turn', started && !ended && !paused && !scoring && turn === WHITE);
 
       const tLbl = document.getElementById('turnLabel');
-      if (paused) tLbl.textContent = '⏸️ 대국 일시정지 (재입장 대기)';
-      else if (scoring) tLbl.textContent = '🧮 사석 지정 및 계가 합의 중';
-      else if (ended) tLbl.textContent = '🏁 대국 종료';
-      else tLbl.textContent = turn === BLACK ? `⚫ 흑 차례 (${names[BLACK]})` : `⚪ 백 차례 (${names[WHITE]})`;
+      const prefix = isSpectator() ? '👁️ [관전] ' : '';
+      if (paused) tLbl.textContent = `${prefix}⏸️ 대국 일시정지 (재입장 대기)`;
+      else if (scoring) tLbl.textContent = `${prefix}🧮 사석 지정 및 계가 합의 중`;
+      else if (ended) tLbl.textContent = `${prefix}🏁 대국 종료`;
+      else tLbl.textContent = `${prefix}${turn === BLACK ? `⚫ 흑 차례 (${names[BLACK]})` : `⚪ 백 차례 (${names[WHITE]})`}`;
 
-      const btnPlace = document.getElementById('btnPlace');
-      const coordBadge = document.getElementById('coordBadge');
-      const extTitle = document.getElementById('extTitle');
-      if (pending && canPlayNow()) {
-        const cStr = coordToNotation(pending.r, pending.c);
-        coordBadge.textContent = cStr;
-        extTitle.textContent = `선택된 위치에 [착수]를 누르세요`;
-        btnPlace.disabled = false;
-      } else {
-        coordBadge.innerHTML = '<i class="fa-solid fa-crosshairs"></i>';
-        extTitle.textContent = scoring ? '반상의 죽은 돌(사석)을 클릭해 지정하세요' : (canPlayNow() ? '바둑판에서 착수할 교차점을 선택하세요' : '상대방의 착수를 기다리는 중...');
-        btnPlace.disabled = true;
+      if (!isSpectator()) {
+        const btnPlace = document.getElementById('btnPlace');
+        const coordBadge = document.getElementById('coordBadge');
+        const extTitle = document.getElementById('extTitle');
+        if (pending && canPlayNow()) {
+          const cStr = coordToNotation(pending.r, pending.c);
+          coordBadge.textContent = cStr;
+          extTitle.textContent = `선택된 위치에 [착수]를 누르세요`;
+          btnPlace.disabled = false;
+        } else {
+          coordBadge.innerHTML = '<i class="fa-solid fa-crosshairs"></i>';
+          extTitle.textContent = scoring ? '반상의 죽은 돌(사석)을 클릭해 지정하세요' : (canPlayNow() ? '바둑판에서 착수할 교차점을 선택하세요' : '상대방의 착수를 기다리는 중...');
+          btnPlace.disabled = true;
+        }
       }
     }
 
@@ -1370,13 +1538,17 @@
     function sendChat() {
       const inp = document.getElementById('chatInput'), txt = inp.value.trim();
       if (!txt) return; inp.value = '';
-      logChat(myName, txt);
-      if (mode !== 'local' && conn && conn.open) conn.send({ type: 'CHAT', sender: myName, text: txt });
+      const sender = isSpectator() ? `[관전] ${myName}` : myName;
+      logChat(sender, txt);
+      const pkt = { type: 'CHAT', sender, text: txt };
+      if (mode === 'host') broadcastFromHost(pkt);
+      else if (playerConn && playerConn.open) playerConn.send(pkt);
     }
 
     function logChat(sender, text) {
       const box = document.getElementById('chatLog'), d = document.createElement('div');
-      d.innerHTML = `<strong class="text-amber-300">[${sender}]</strong> <span class="text-slate-200">${text}</span>`;
+      const isSpecMsg = String(sender).startsWith('[관전]');
+      d.innerHTML = `<strong class="${isSpecMsg ? 'text-purple-300' : 'text-amber-300'}">[${sender}]</strong> <span class="text-slate-200">${text}</span>`;
       box.appendChild(d); box.scrollTop = box.scrollHeight;
     }
 
