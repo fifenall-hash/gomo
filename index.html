@@ -385,7 +385,8 @@
 
   <script>
     const EMPTY = 0, BLACK = 1, WHITE = 2;
-    const KIFU_COLS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S'];
+    // 바둑 표준 가로열 표기: 'I'를 제외하고 H 다음 바로 J를 사용 (9번째 열 = J)
+    const COL_LABELS = "ABCDEFGHJKLMNOPQRST";
     const LOBBY_TOPIC = 'baduk_kr_lobby_2026_v4/rooms';
     const SAVE_KEY = 'baduk_paused_match_v4';
 
@@ -408,7 +409,10 @@
 
     function isSpectator() { return mode === 'spectate'; }
 
-    function coordToNotation(r, c) { return `${KIFU_COLS[c] || 'A'}${N - r}`; }
+    // 열(c) 변환 시 'I' 없이 COL_LABELS("ABCDEFGHJKLMNOPQRST") 참조
+    function coordToNotation(r, c) {
+      return `${COL_LABELS[c] || 'A'}${N - r}`;
+    }
 
     function getKifuString() {
       if (!history.length) return '';
@@ -1103,7 +1107,29 @@
       chains.forEach(ch => {
         if (deadSet.has(`${ch.stones[0][0]},${ch.stones[0][1]}`)) return;
         const libCoords = Array.from(ch.libs).map(s => s.split(',').map(Number));
-        if (ch.libs.size === 4) {
+
+        // 옥집(가짜 집) 판별: 1칸 빈점의 대각선(귀 1개, 변 1개, 중앙 2개 이상)을 상대 돌이 차지한 경우
+        let falseEyeCount = 0;
+        if (ch.libs.size <= 3) {
+          libCoords.forEach(([lr, lc]) => {
+            const diags = [[-1,-1],[-1,1],[1,-1],[1,1]]
+              .map(([dr, dc]) => [lr + dr, lc + dc])
+              .filter(([nr, nc]) => nr >= 0 && nr < N && nc >= 0 && nc < N);
+            const oppDiags = diags.filter(([nr, nc]) => board[nr][nc] === (ch.col === BLACK ? WHITE : BLACK)).length;
+            const threshold = diags.length === 4 ? 2 : 1;
+            if (oppDiags >= threshold) falseEyeCount++;
+          });
+        }
+
+        if (ch.libs.size === 3 && ch.stones.length >= 4) {
+          const isLine3 = (libCoords[0][0] === libCoords[1][0] && libCoords[1][0] === libCoords[2][0]) ||
+                          (libCoords[0][1] === libCoords[1][1] && libCoords[1][1] === libCoords[2][1]);
+          const connected3 = libCoords.some(([r, c]) => libCoords.filter(([nr, nc]) => Math.abs(r - nr) + Math.abs(c - nc) === 1).length === 2);
+          if (connected3) {
+            ch.stones.forEach(([r, c]) => deadSet.add(`${r},${c}`));
+            shapeLabels.push({ r: ch.stones[0][0], c: ch.stones[0][1], text: isLine3 ? '직삼궁(사석)' : '곡삼궁(사석)', col: '#ef4444' });
+          }
+        } else if (ch.libs.size === 4) {
           const rs = new Set(libCoords.map(p => p[0])), cs = new Set(libCoords.map(p => p[1]));
           if (rs.size === 2 && cs.size === 2) {
             ch.stones.forEach(([r, c]) => deadSet.add(`${r},${c}`));
@@ -1121,7 +1147,7 @@
             ch.stones.forEach(([r, c]) => deadSet.add(`${r},${c}`));
             shapeLabels.push({ r: ch.stones[0][0], c: ch.stones[0][1], text: '매화육궁(사석)', col: '#ef4444' });
           }
-        } else if (ch.libs.size <= 2 && ch.stones.length <= 3) {
+        } else if (ch.libs.size - falseEyeCount <= 1 && ch.stones.length <= 4) {
           let sharedWithWeakOpp = false;
           chains.forEach(other => {
             if (other.col !== ch.col && other.libs.size <= 2) {
@@ -1133,6 +1159,9 @@
             shapeLabels.push({ r: ch.stones[0][0], c: ch.stones[0][1], text: '빅(공생)', col: '#0ea5e9' });
           } else {
             ch.stones.forEach(([r, c]) => deadSet.add(`${r},${c}`));
+            if (falseEyeCount > 0) {
+              shapeLabels.push({ r: ch.stones[0][0], c: ch.stones[0][1], text: '옥집(사석)', col: '#ef4444' });
+            }
           }
         }
       });
@@ -1500,7 +1529,7 @@
         if (pending && canPlayNow()) {
           const cStr = coordToNotation(pending.r, pending.c);
           coordBadge.textContent = cStr;
-          extTitle.textContent = `선택된 위치에 [착수]를 누르세요`;
+          extTitle.textContent = `선택: ${cStr} — [착수]를 누르세요`;
           btnPlace.disabled = false;
         } else {
           coordBadge.innerHTML = '<i class="fa-solid fa-crosshairs"></i>';
