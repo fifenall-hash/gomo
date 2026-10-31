@@ -3,6 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <!-- 코드 업데이트 즉시 반영을 위한 브라우저/웹뷰 캐시 방지 메타 태그 -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <!-- PWA 테마 및 모바일 홈 화면 앱 설정 -->
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="수담 바둑" />
+  <!-- 외부 준비 파일 연결: icon.ico, icon.png, manifest.json -->
+  <link rel="icon" href="./icon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="./icon.png" />
+  <link rel="apple-touch-icon" href="./icon.png" />
+  <link rel="manifest" id="pwa-manifest-link" href="./manifest.json" />
   <title>클라우드 수담(手談) 바둑 - 실시간 대기실 · 관전 · 정밀 계가</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -24,9 +39,12 @@
   <header class="w-full border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-30">
     <div class="max-w-6xl mx-auto px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2">
       <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center shadow border border-amber-300/40">
-          <span class="w-3 h-3 rounded-full bg-slate-950 border border-slate-600 -mr-1"></span>
-          <span class="w-3 h-3 rounded-full bg-white border border-slate-300"></span>
+        <div class="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center shadow border border-amber-300/40 overflow-hidden shrink-0">
+          <img src="./icon.png" alt="수담 바둑" class="w-full h-full object-cover" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden');" />
+          <div class="hidden flex items-center justify-center">
+            <span class="w-3 h-3 rounded-full bg-slate-950 border border-slate-600 -mr-1"></span>
+            <span class="w-3 h-3 rounded-full bg-white border border-slate-300"></span>
+          </div>
         </div>
         <h1 class="text-sm sm:text-base font-black text-amber-400 tracking-tight flex items-center gap-2">
           클라우드 수담(手談) 바둑
@@ -49,6 +67,11 @@
           <i class="fa-solid fa-user-group"></i> <span>1기기 2인</span>
         </button>
 
+        <!-- 미설치 이용자에게만 노출되는 PWA 앱 설치 버튼 -->
+        <button id="pwaInstallHeaderBtn" onclick="triggerPwaInstall()" class="hidden px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 text-xs font-black shadow transition flex items-center gap-1">
+          <i class="fa-solid fa-mobile-screen-button"></i> <span>📲 앱 설치</span>
+        </button>
+
         <button id="soundBtn" onclick="toggleSound()" class="w-7 h-7 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-amber-400 transition" title="효과음">
           <i id="soundIcon" class="fa-solid fa-volume-high text-xs"></i>
         </button>
@@ -58,6 +81,29 @@
 
   <!-- VIEW 1: REAL-TIME WAITING ROOM (LOBBY) -->
   <main id="lobbyView" class="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 py-4 flex flex-col gap-4">
+    <!-- 미설치 이용자 전용 PWA 앱 설치 안내 배너 -->
+    <div id="pwaInstallBanner" class="hidden bg-gradient-to-r from-amber-500/20 via-slate-900 to-amber-500/10 border border-amber-500/50 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center text-lg font-black shadow shrink-0 overflow-hidden border border-amber-300/50">
+          <img src="./icon.png" alt="앱 아이콘" class="w-full h-full object-cover" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden');" />
+          <i class="fa-solid fa-download hidden"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">PWA 전용 앱</span>
+            <h3 class="text-xs sm:text-sm font-black text-white">홈 화면에 [수담 바둑] 앱을 설치해 보세요!</h3>
+          </div>
+          <p class="text-[11px] text-slate-300 mt-0.5">설치 후 전체화면으로 쾌적하게 대국할 수 있으며, 코드 업데이트 시 캐시 지연 없이 즉시 최신 버전이 반영됩니다.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+        <button onclick="dismissPwaBanner()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-slate-400">닫기</button>
+        <button onclick="triggerPwaInstall()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow flex items-center gap-1.5">
+          <i class="fa-solid fa-mobile-screen-button"></i> 📲 앱 설치
+        </button>
+      </div>
+    </div>
+
     <!-- Paused Match Resume Banner -->
     <div id="savedBanner" class="hidden bg-amber-500/15 border-2 border-amber-400/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
       <div>
@@ -145,9 +191,9 @@
         </div>
       </div>
 
-      <!-- PLAYER OUTSIDE BOTTOM CONTROL BAR ('착수', '한수쉼', '계가', '기권') -->
-      <div id="extBar" class="w-full max-w-[560px] bg-slate-900/95 border border-slate-700 rounded-2xl px-3 py-2.5 shadow-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-        <div class="flex items-center justify-between sm:justify-start gap-2 min-w-0">
+      <!-- PLAYER OUTSIDE BOTTOM CONTROL BAR ('착수', '한수쉼', '계가', '기보 텍스트 복사', '기권') -->
+      <div id="extBar" class="w-full max-w-[560px] bg-slate-900/95 border border-slate-700 rounded-2xl px-3 py-2.5 shadow-xl flex flex-col gap-2">
+        <div class="flex items-center justify-between gap-2 min-w-0">
           <div class="flex items-center gap-2 min-w-0">
             <div id="coordBadge" class="w-7 h-7 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400 text-xs font-mono font-black shrink-0">
               <i class="fa-solid fa-crosshairs"></i>
@@ -157,22 +203,22 @@
               <div id="extSub" class="text-[10px] text-slate-400 truncate">교차점 선택 후 [착수] 또는 [한수쉼]</div>
             </div>
           </div>
-          <button onclick="copyKifuText()" class="sm:hidden px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-300 text-[11px] font-bold shrink-0">
-            <i class="fa-regular fa-copy mr-1"></i>기보 텍스트 복사
+          <button onclick="copyKifuText()" class="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-[11px] font-bold shrink-0 flex items-center gap-1">
+            <i class="fa-regular fa-copy"></i> 기보 텍스트 복사
           </button>
         </div>
 
-        <div class="grid grid-cols-4 sm:flex items-center justify-end gap-1.5 shrink-0">
-          <button id="btnPlace" onclick="confirmPendingMove()" disabled class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow disabled:opacity-35 disabled:pointer-events-none flex items-center justify-center gap-1">
+        <div class="grid grid-cols-4 gap-1.5">
+          <button id="btnPlace" onclick="confirmPendingMove()" disabled class="py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow disabled:opacity-35 disabled:pointer-events-none flex items-center justify-center gap-1">
             <i class="fa-solid fa-check"></i> 착수
           </button>
-          <button id="btnPass" onclick="passTurn()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 text-xs font-bold text-center">
+          <button id="btnPass" onclick="passTurn()" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 text-xs font-bold text-center">
             한수쉼
           </button>
-          <button id="btnScore" onclick="requestScoring()" class="px-3 py-2 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700 text-purple-200 text-xs font-bold text-center">
+          <button id="btnScore" onclick="requestScoring()" class="py-2 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700 text-purple-200 text-xs font-bold text-center">
             계가
           </button>
-          <button id="btnResign" onclick="confirmResign()" class="px-2.5 py-2 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs font-bold text-center">
+          <button id="btnResign" onclick="confirmResign()" class="py-2 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs font-bold text-center">
             기권
           </button>
         </div>
@@ -195,7 +241,7 @@
       </div>
     </section>
 
-    <!-- Left Column (Second on Mobile): Room Info, Players, Scoring Panel, Kifu Copy, Chat -->
+    <!-- Left Column (Second on Mobile): Room Info, Players, Scoring Panel, Options, Chat -->
     <section class="lg:col-span-5 flex flex-col gap-3 order-2 lg:order-1 w-full">
       <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 flex items-center justify-between gap-2">
         <div class="min-w-0">
@@ -381,11 +427,37 @@
     </div>
   </div>
 
+  <!-- PWA INSTALL GUIDE MODAL (iOS Safari / 브라우저 수동 설치 안내) -->
+  <div id="pwaModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div class="flex items-center gap-2">
+          <img src="./icon.png" alt="아이콘" class="w-6 h-6 rounded-lg object-cover" onerror="this.style.display='none'" />
+          <h2 class="text-base font-black text-amber-400">수담 바둑 앱(PWA) 설치 안내</h2>
+        </div>
+        <button onclick="document.getElementById('pwaModal').classList.add('hidden')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3 text-xs text-slate-200 leading-relaxed">
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1.5">
+          <div class="font-black text-amber-300">📱 iPhone / iPad (Safari)</div>
+          <p class="text-slate-300">브라우저 하단(또는 상단)의 <strong>[공유 <i class="fa-solid fa-arrow-up-from-bracket"></i>]</strong> 버튼을 누른 뒤 <strong>[홈 화면에 추가]</strong>를 선택하면 즉시 앱으로 설치됩니다.</p>
+        </div>
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1.5">
+          <div class="font-black text-sky-300">🤖 Android / PC (Chrome · Edge · 삼성 인터넷)</div>
+          <p class="text-slate-300">주소창 우측의 <strong>[앱 설치]</strong> 아이콘 또는 브라우저 메뉴(⋮)의 <strong>[앱 설치 / 홈 화면에 추가]</strong>를 눌러 설치하세요.</p>
+        </div>
+      </div>
+      <div class="flex justify-end pt-1">
+        <button onclick="document.getElementById('pwaModal').classList.add('hidden')" class="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black text-xs">확인</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toastBox" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <script>
     const EMPTY = 0, BLACK = 1, WHITE = 2;
-    // 바둑 표준 가로열 표기: 'I'를 제외하고 H 다음 바로 J를 사용 (9번째 열 = J)
+    // 바둑 표준 가로열 표기: 'I'를 제외하고 'J'로 표기 (9번째 열 = J)
     const COL_LABELS = "ABCDEFGHJKLMNOPQRST";
     const LOBBY_TOPIC = 'baduk_kr_lobby_2026_v4/rooms';
     const SAVE_KEY = 'baduk_paused_match_v4';
@@ -665,7 +737,6 @@
     function bindHostIncomingConnection(c) {
       c.on('data', d => {
         if (!d || !d.type) return;
-        // 1. Third-Party Spectator Connection
         if (d.type === 'JOIN_SPECTATOR') {
           c._isSpectator = true;
           c._specName = d.name || '관전자';
@@ -677,7 +748,6 @@
           broadcastFromHost({ type: 'CHAT', sender: '시스템', text: joinNotice });
           return;
         }
-        // 2. Opponent Player Connection
         if (d.type === 'HELLO') {
           if (playerConn && playerConn.open && playerConn !== c) {
             c.send({ type: 'ERROR', msg: '이미 대국자가 입장했습니다. 관전 모드로 전환됩니다.' });
@@ -708,7 +778,6 @@
           return;
         }
 
-        // 3. Messages from Spectator (Chat only)
         if (c._isSpectator) {
           if (d.type === 'CHAT') {
             logChat(d.sender, d.text);
@@ -718,7 +787,6 @@
           return;
         }
 
-        // 4. Gameplay Actions from Opponent Player (Host executes & relays to all Spectators)
         handleIncomingGamePacket(d, true);
       });
 
@@ -1108,7 +1176,6 @@
         if (deadSet.has(`${ch.stones[0][0]},${ch.stones[0][1]}`)) return;
         const libCoords = Array.from(ch.libs).map(s => s.split(',').map(Number));
 
-        // 옥집(가짜 집) 판별: 1칸 빈점의 대각선(귀 1개, 변 1개, 중앙 2개 이상)을 상대 돌이 차지한 경우
         let falseEyeCount = 0;
         if (ch.libs.size <= 3) {
           libCoords.forEach(([lr, lc]) => {
@@ -1588,10 +1655,163 @@
       setTimeout(() => el.remove(), 2800);
     }
 
+    // =========================================================================
+    // PWA & ZERO-DELAY UPDATE ARCHITECTURE (icon.ico, icon.png, manifest.json, sw.js)
+    // =========================================================================
+    let deferredPwaPrompt = null;
+    let pwaBannerDismissed = false;
+    let initialHtmlSignature = null;
+
+    // 1. 이용자 앱 설치 여부 확인 및 미설치 이용자에게만 [📲 앱 설치] 버튼 노출
+    function isAppInstalled() {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                           window.matchMedia('(display-mode: fullscreen)').matches ||
+                           window.navigator.standalone === true ||
+                           document.referrer.includes('android-app://');
+      if (isStandalone) {
+        localStorage.setItem('baduk_pwa_installed', '1');
+        return true;
+      }
+      if (deferredPwaPrompt) return false;
+      return localStorage.getItem('baduk_pwa_installed') === '1';
+    }
+
+    function updatePwaInstallUI() {
+      const installed = isAppInstalled();
+      const headerBtn = document.getElementById('pwaInstallHeaderBtn');
+      const lobbyBanner = document.getElementById('pwaInstallBanner');
+      if (headerBtn) headerBtn.classList.toggle('hidden', installed);
+      if (lobbyBanner) lobbyBanner.classList.toggle('hidden', installed || pwaBannerDismissed);
+    }
+
+    function dismissPwaBanner() {
+      pwaBannerDismissed = true;
+      updatePwaInstallUI();
+    }
+
+    async function triggerPwaInstall() {
+      if (deferredPwaPrompt) {
+        try {
+          deferredPwaPrompt.prompt();
+          const { outcome } = await deferredPwaPrompt.userChoice;
+          if (outcome === 'accepted') {
+            deferredPwaPrompt = null;
+            localStorage.setItem('baduk_pwa_installed', '1');
+            toast('🎉 수담 바둑 앱 설치가 완료되었습니다!');
+          }
+        } catch (e) {}
+        updatePwaInstallUI();
+      } else {
+        document.getElementById('pwaModal').classList.remove('hidden');
+      }
+    }
+
+    // 2. 코드 업데이트 시 캐시 지연 방지 엔진 (Zero-Delay Live Code Check & Cache Purge)
+    async function clearAllBrowserCaches() {
+      if ('caches' in window) {
+        try {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        } catch (e) {}
+      }
+    }
+
+    function computeQuickHash(str) {
+      let h = 2166136261;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return (h >>> 0).toString(16) + '_' + str.length;
+    }
+
+    async function checkLiveCodeUpdate() {
+      if (location.protocol === 'file:' || location.protocol === 'blob:') return;
+      try {
+        const targetUrl = (location.pathname.endsWith('/') ? location.pathname + 'index.html' : location.pathname) + '?_t=' + Date.now();
+        const res = await fetch(targetUrl, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+        });
+        if (!res.ok) return;
+        const text = await res.text();
+        const sig = computeQuickHash(text.trim());
+        if (!initialHtmlSignature) {
+          initialHtmlSignature = sig;
+        } else if (sig !== initialHtmlSignature) {
+          if (started && !ended && !isSpectator()) saveMatch();
+          await clearAllBrowserCaches();
+          toast('🔄 새 코드 업데이트가 감지되어 즉시 최신 버전으로 전환합니다...');
+          setTimeout(() => location.replace(location.pathname + '?_v=' + Date.now()), 400);
+        }
+      } catch (e) {}
+    }
+
+    async function registerZeroDelayServiceWorker() {
+      if (!('serviceWorker' in navigator)) return;
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
+      try {
+        const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+        reg.update().catch(() => {});
+        if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          if (nw) nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+              nw.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return;
+          refreshing = true;
+          if (started && !ended && !isSpectator()) saveMatch();
+          location.reload();
+        });
+      } catch (e) {}
+    }
+
+    async function initZeroDelayPwa() {
+      await clearAllBrowserCaches();
+
+      window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        deferredPwaPrompt = e;
+        localStorage.removeItem('baduk_pwa_installed');
+        updatePwaInstallUI();
+      });
+
+      window.addEventListener('appinstalled', () => {
+        deferredPwaPrompt = null;
+        localStorage.setItem('baduk_pwa_installed', '1');
+        updatePwaInstallUI();
+        toast('✅ 앱이 성공적으로 설치되었습니다!');
+      });
+
+      try {
+        window.matchMedia('(display-mode: standalone)').addEventListener('change', () => updatePwaInstallUI());
+      } catch (e) {}
+
+      await registerZeroDelayServiceWorker();
+      checkLiveCodeUpdate();
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          clearAllBrowserCaches();
+          checkLiveCodeUpdate();
+        }
+      });
+      setInterval(checkLiveCodeUpdate, 60000);
+
+      updatePwaInstallUI();
+    }
+
     window.addEventListener('resize', resizeCanvas);
     window.onload = () => {
       document.getElementById('nicknameInput').value = myName;
       initEmptyBoard(19); initLobby(); checkSavedBanner(); renderRooms();
+      initZeroDelayPwa();
     };
   </script>
 </body>
