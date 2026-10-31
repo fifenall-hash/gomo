@@ -13,10 +13,12 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="수담 바둑" />
-  <!-- 외부 준비 파일 연결: icon.ico, icon.png, manifest.json -->
-  <link rel="icon" href="./icon.ico" sizes="any" />
-  <link rel="icon" type="image/png" href="./icon.png" />
-  <link rel="apple-touch-icon" href="./icon.png" />
+  <!-- 외부 준비 파일 표준 연결: icon.ico, icon.png, manifest.json -->
+  <link rel="icon" type="image/x-icon" href="./icon.ico" />
+  <link rel="shortcut icon" type="image/x-icon" href="./icon.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" id="icon-192-link" href="./icon.png" />
+  <link rel="icon" type="image/png" sizes="512x512" id="icon-512-link" href="./icon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" id="apple-touch-icon-link" href="./icon.png" />
   <link rel="manifest" id="pwa-manifest-link" href="./manifest.json" />
   <title>클라우드 수담(手談) 바둑 - 실시간 대기실 · 관전 · 정밀 계가</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -31,6 +33,8 @@
     @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.55); } 50% { box-shadow: 0 0 0 6px rgba(245,158,11,0); } }
     .active-turn { animation: pulseGlow 1.8s infinite; border-color: #f59e0b !important; }
     .opt-active { border-color: #f59e0b !important; background: rgba(245,158,11,0.18) !important; color: #fff !important; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
   </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -39,12 +43,8 @@
   <header class="w-full border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-30">
     <div class="max-w-6xl mx-auto px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2">
       <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center shadow border border-amber-300/40 overflow-hidden shrink-0">
-          <img src="./icon.png" alt="수담 바둑" class="w-full h-full object-cover" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden');" />
-          <div class="hidden flex items-center justify-center">
-            <span class="w-3 h-3 rounded-full bg-slate-950 border border-slate-600 -mr-1"></span>
-            <span class="w-3 h-3 rounded-full bg-white border border-slate-300"></span>
-          </div>
+        <div class="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center shadow border border-amber-400/50 overflow-hidden shrink-0">
+          <img src="./icon.png" alt="수담 바둑" class="w-full h-full object-cover" />
         </div>
         <h1 class="text-sm sm:text-base font-black text-amber-400 tracking-tight flex items-center gap-2">
           클라우드 수담(手談) 바둑
@@ -84,16 +84,15 @@
     <!-- 미설치 이용자 전용 PWA 앱 설치 안내 배너 -->
     <div id="pwaInstallBanner" class="hidden bg-gradient-to-r from-amber-500/20 via-slate-900 to-amber-500/10 border border-amber-500/50 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
       <div class="flex items-center gap-3">
-        <div class="w-11 h-11 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center text-lg font-black shadow shrink-0 overflow-hidden border border-amber-300/50">
-          <img src="./icon.png" alt="앱 아이콘" class="w-full h-full object-cover" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden');" />
-          <i class="fa-solid fa-download hidden"></i>
+        <div class="w-11 h-11 rounded-2xl bg-slate-800 flex items-center justify-center shadow shrink-0 overflow-hidden border border-amber-400/60">
+          <img src="./icon.png" alt="앱 아이콘" class="w-full h-full object-cover" />
         </div>
         <div>
           <div class="flex items-center gap-2">
             <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">PWA 전용 앱</span>
             <h3 class="text-xs sm:text-sm font-black text-white">홈 화면에 [수담 바둑] 앱을 설치해 보세요!</h3>
           </div>
-          <p class="text-[11px] text-slate-300 mt-0.5">설치 후 전체화면으로 쾌적하게 대국할 수 있으며, 코드 업데이트 시 캐시 지연 없이 즉시 최신 버전이 반영됩니다.</p>
+          <p class="text-[11px] text-slate-300 mt-0.5">설치 후 전용 아이콘으로 즉시 실행되며, 코드 업데이트 시 캐시 지연 없이 최신 버전이 바로 반영됩니다.</p>
         </div>
       </div>
       <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
@@ -145,7 +144,7 @@
           <i class="fa-solid fa-chess-board"></i>
         </div>
         <h3 class="text-sm sm:text-base font-bold text-slate-200">현재 개설된 대국실이 없습니다</h3>
-        <p class="text-xs text-slate-400 mt-1 max-w-md">우측 상단 <strong>[+ 방 만들기]</strong>로 9~19줄 바둑판과 한국/중국 계가 규칙을 설정해 대국실을 개설하거나 다른 사람의 대국을 실시간 관전해 보세요.</p>
+        <p class="text-xs text-slate-400 mt-1 max-w-md">우측 상단 <strong>[+ 방 만들기]</strong>로 9~19줄 바둑판, 기본 시간 및 초읽기(초·횟수)를 자유롭게 설정해 대국실을 개설해 보세요.</p>
       </div>
 
       <div id="roomGrid" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3"></div>
@@ -158,22 +157,33 @@
     <!-- Right Column (First on Mobile): Top Timer Bar + Baduk Board + Bottom Action Bar -->
     <section class="lg:col-span-7 flex flex-col items-center order-1 lg:order-2 w-full gap-2">
 
-      <!-- TOP BYOYOMI TIMER BAR (Directly above the board for 1-screen mobile visibility) -->
-      <div class="w-full max-w-[560px] bg-slate-900/95 border border-slate-700 rounded-2xl px-3 py-2 shadow-lg">
-        <div class="flex items-center justify-between text-xs mb-1.5 gap-2">
+      <!-- TOP BYOYOMI & MAIN TIME BAR (Directly above the board for 1-screen mobile visibility) -->
+      <div class="w-full max-w-[560px] bg-slate-900/95 border border-slate-700 rounded-2xl px-3 py-2 shadow-lg space-y-1.5">
+        <div class="flex items-center justify-between text-xs gap-2">
           <div class="flex items-center gap-2 min-w-0">
             <span id="turnLabel" class="font-black text-amber-400 truncate">대국 준비 중</span>
             <span id="koLabel" class="hidden sm:inline-block text-[11px] text-rose-400 font-bold"></span>
           </div>
           <div class="font-mono flex items-center gap-1.5 shrink-0">
             <i class="fa-regular fa-clock text-amber-400 text-xs"></i>
-            <span id="timerLabel" class="font-black text-white text-xs sm:text-sm">30초</span>
+            <span id="timerLabel" class="font-black text-white text-xs sm:text-sm">기본 05:00</span>
             <span class="text-slate-600">|</span>
             <span id="moveCountLabel" class="text-slate-300 font-bold text-xs">0수</span>
           </div>
         </div>
         <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
           <div id="timerBar" class="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-300" style="width:100%"></div>
+        </div>
+        <!-- Compact Dual Clock Strip for Black & White -->
+        <div class="grid grid-cols-2 gap-2 pt-0.5 text-[11px] font-mono">
+          <div id="topStripBlack" class="flex items-center justify-between bg-slate-950/90 border border-slate-800 rounded-lg px-2 py-1">
+            <span class="font-sans font-bold text-slate-200 flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-400 inline-block"></span>흑</span>
+            <span id="topClockBlack" class="font-bold text-amber-300">05:00 + 30초×3</span>
+          </div>
+          <div id="topStripWhite" class="flex items-center justify-between bg-slate-950/90 border border-slate-800 rounded-lg px-2 py-1">
+            <span class="font-sans font-bold text-slate-200 flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-white border border-slate-400 inline-block"></span>백</span>
+            <span id="topClockWhite" class="font-bold text-sky-300">05:00 + 30초×3</span>
+          </div>
         </div>
       </div>
 
@@ -249,7 +259,7 @@
             <span id="badgeSpecMode" class="hidden text-[11px] font-black px-2 py-0.5 rounded bg-purple-500 text-white">👁️ 관전 모드</span>
             <span id="badgeSize" class="text-[11px] font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">19줄</span>
             <span id="badgeRule" class="text-[11px] font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">한국 규칙(덤 6.5)</span>
-            <span id="badgeTime" class="text-[11px] font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300">30초 초읽기</span>
+            <span id="badgeTime" class="text-[11px] font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300">5분 + 30초×3회</span>
             <span id="badgeSpecCount" class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700">👁️ 관전 0명</span>
           </div>
           <h2 id="roomTitleLabel" class="text-sm font-black text-white truncate mt-1">바둑 대국실</h2>
@@ -274,18 +284,20 @@
           <div id="cardBlack" class="bg-slate-950 border-2 border-slate-800 rounded-xl p-2.5 transition">
             <div class="flex items-center gap-2">
               <span class="w-5 h-5 rounded-full bg-slate-900 border border-slate-400 shadow shrink-0"></span>
-              <div class="min-w-0">
+              <div class="min-w-0 flex-1">
                 <div id="nameBlack" class="text-xs font-bold text-white truncate">흑돌</div>
                 <div id="capBlack" class="text-[11px] text-amber-300 font-semibold">따낸 돌(사석): 0</div>
+                <div id="clockBlackCard" class="text-[11px] font-mono text-slate-300 mt-0.5">⏱️ 05:00 · 30초×3회</div>
               </div>
             </div>
           </div>
           <div id="cardWhite" class="bg-slate-950 border-2 border-slate-800 rounded-xl p-2.5 transition">
             <div class="flex items-center gap-2">
               <span class="w-5 h-5 rounded-full bg-white border border-slate-300 shadow shrink-0"></span>
-              <div class="min-w-0">
+              <div class="min-w-0 flex-1">
                 <div id="nameWhite" class="text-xs font-bold text-white truncate">백돌</div>
                 <div id="capWhite" class="text-[11px] text-sky-300 font-semibold">따낸 돌(사석): 0</div>
+                <div id="clockWhiteCard" class="text-[11px] font-mono text-slate-300 mt-0.5">⏱️ 05:00 · 30초×3회</div>
               </div>
             </div>
           </div>
@@ -362,9 +374,9 @@
     </section>
   </main>
 
-  <!-- ROOM CREATION MODAL -->
-  <div id="roomModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+  <!-- ROOM CREATION & CUSTOM TIMER MODAL -->
+  <div id="roomModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-4 sm:p-5 shadow-2xl space-y-3.5 my-auto">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
         <h2 id="modalHeader" class="text-base font-black text-white">새 바둑 대국실 만들기</h2>
         <button onclick="document.getElementById('roomModal').classList.add('hidden')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
@@ -378,51 +390,99 @@
       <div class="space-y-1">
         <label class="text-xs font-bold text-slate-300">바둑판 크기 (9·11·13·15·17·19줄)</label>
         <div class="grid grid-cols-6 gap-1.5" id="sizeBtns">
-          <button onclick="setOpt('size',9)" data-val="9" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">9줄</button>
-          <button onclick="setOpt('size',11)" data-val="11" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">11줄</button>
-          <button onclick="setOpt('size',13)" data-val="13" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">13줄</button>
-          <button onclick="setOpt('size',15)" data-val="15" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">15줄</button>
-          <button onclick="setOpt('size',17)" data-val="17" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">17줄</button>
-          <button onclick="setOpt('size',19)" data-val="19" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300 opt-active">19줄</button>
+          <button type="button" onclick="setOpt('size',9)" data-val="9" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">9줄</button>
+          <button type="button" onclick="setOpt('size',11)" data-val="11" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">11줄</button>
+          <button type="button" onclick="setOpt('size',13)" data-val="13" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">13줄</button>
+          <button type="button" onclick="setOpt('size',15)" data-val="15" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">15줄</button>
+          <button type="button" onclick="setOpt('size',17)" data-val="17" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">17줄</button>
+          <button type="button" onclick="setOpt('size',19)" data-val="19" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300 opt-active">19줄</button>
         </div>
       </div>
 
       <div class="space-y-1">
         <label class="text-xs font-bold text-slate-300">돌 선택 (기본값: 흑/백 무작위)</label>
         <div class="grid grid-cols-3 gap-2" id="stoneBtns">
-          <button onclick="setOpt('stone','random')" data-val="random" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300 opt-active">🎲 무작위(기본)</button>
-          <button onclick="setOpt('stone','black')" data-val="black" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">⚫ 흑돌(선공)</button>
-          <button onclick="setOpt('stone','white')" data-val="white" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">⚪ 백돌(덤)</button>
+          <button type="button" onclick="setOpt('stone','random')" data-val="random" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300 opt-active">🎲 무작위(기본)</button>
+          <button type="button" onclick="setOpt('stone','black')" data-val="black" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">⚫ 흑돌(선공)</button>
+          <button type="button" onclick="setOpt('stone','white')" data-val="white" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">⚪ 백돌(덤)</button>
         </div>
       </div>
 
       <div class="space-y-1">
         <label class="text-xs font-bold text-slate-300">계가 규칙 (한국 / 중국)</label>
         <div class="grid grid-cols-2 gap-2" id="ruleBtns">
-          <button onclick="setOpt('rule','korean')" data-val="korean" class="p-2.5 rounded-xl border border-slate-700 bg-slate-950 text-left text-xs font-bold text-slate-300 opt-active">
+          <button type="button" onclick="setOpt('rule','korean')" data-val="korean" class="p-2.5 rounded-xl border border-slate-700 bg-slate-950 text-left text-xs font-bold text-slate-300 opt-active">
             <div>🇰🇷 한국 규칙 (덤 6.5집)</div>
             <div class="text-[10px] text-slate-400 font-normal mt-0.5">집+사석 계산 · 귀곡사 자동사석</div>
           </button>
-          <button onclick="setOpt('rule','chinese')" data-val="chinese" class="p-2.5 rounded-xl border border-slate-700 bg-slate-950 text-left text-xs font-bold text-slate-300">
+          <button type="button" onclick="setOpt('rule','chinese')" data-val="chinese" class="p-2.5 rounded-xl border border-slate-700 bg-slate-950 text-left text-xs font-bold text-slate-300">
             <div>🇨🇳 중국 규칙 (덤 7.5집)</div>
             <div class="text-[10px] text-slate-400 font-normal mt-0.5">집+살아있는돌 · 실전해결 지원</div>
           </button>
         </div>
       </div>
 
-      <div class="space-y-1">
-        <label class="text-xs font-bold text-slate-300">1수당 초읽기 제한 시간 (초과 시 시간패)</label>
-        <div class="grid grid-cols-4 gap-1.5" id="timeBtns">
-          <button onclick="setOpt('time',15)" data-val="15" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">15초</button>
-          <button onclick="setOpt('time',30)" data-val="30" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300 opt-active">30초(기본)</button>
-          <button onclick="setOpt('time',60)" data-val="60" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">60초</button>
-          <button onclick="setOpt('time',0)" data-val="0" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">무제한</button>
+      <!-- CUSTOM TIME & BYOYOMI DIRECT INPUT SECTION -->
+      <div class="space-y-2 bg-slate-950/90 border border-slate-800 rounded-2xl p-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <label class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+            <i class="fa-regular fa-clock"></i> 대국 시간 설정 (기본시간 + 초읽기 직접 입력)
+          </label>
+          <div class="flex items-center gap-1" id="timeModeBtns">
+            <button type="button" onclick="setTimeMode('timed')" id="btnTimeModeTimed" class="px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-900 text-[11px] font-bold text-slate-300 opt-active">⏱️ 시간 제한 사용</button>
+            <button type="button" onclick="setTimeMode('unlimited')" id="btnTimeModeUnlim" class="px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-900 text-[11px] font-bold text-slate-300">♾️ 무제한</button>
+          </div>
+        </div>
+
+        <!-- Quick Presets -->
+        <div class="flex flex-wrap items-center gap-1 pt-0.5">
+          <span class="text-[10px] text-slate-400 mr-1">빠른 프리셋:</span>
+          <button type="button" onclick="applyTimePreset(0,0,20,3)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-200 border border-slate-700">초속기 (0분+20초×3회)</button>
+          <button type="button" onclick="applyTimePreset(5,0,30,3)" class="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-[10px] font-bold text-amber-300 border border-amber-500/40">속기 (5분+30초×3회)</button>
+          <button type="button" onclick="applyTimePreset(10,0,40,3)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-200 border border-slate-700">표준 (10분+40초×3회)</button>
+          <button type="button" onclick="applyTimePreset(30,0,60,5)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-200 border border-slate-700">장고 (30분+60초×5회)</button>
+        </div>
+
+        <!-- Direct Numeric Input Fields -->
+        <div id="customTimeInputs" class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+          <!-- 기본 시간 (분 / 초) -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-2">
+            <div class="text-[10px] font-bold text-slate-400 mb-1">기본 시간 (0분 0초면 즉시 초읽기)</div>
+            <div class="flex items-center gap-1">
+              <input id="inpMainMin" type="number" min="0" max="300" value="5" oninput="syncCustomTimePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-black text-white text-center outline-none focus:border-amber-400" />
+              <span class="text-xs font-bold text-slate-300 shrink-0">분</span>
+              <input id="inpMainSec" type="number" min="0" max="59" value="0" oninput="syncCustomTimePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-black text-white text-center outline-none focus:border-amber-400" />
+              <span class="text-xs font-bold text-slate-300 shrink-0">초</span>
+            </div>
+          </div>
+
+          <!-- 초읽기 시간 (초) -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-2">
+            <div class="text-[10px] font-bold text-slate-400 mb-1">초읽기 1회당 시간 (1~600초)</div>
+            <div class="flex items-center gap-1.5">
+              <input id="inpByoSec" type="number" min="1" max="600" value="30" oninput="syncCustomTimePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-black text-amber-300 text-center outline-none focus:border-amber-400" />
+              <span class="text-xs font-bold text-slate-300 shrink-0">초</span>
+            </div>
+          </div>
+
+          <!-- 초읽기 횟수 (회) -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-2">
+            <div class="text-[10px] font-bold text-slate-400 mb-1">초읽기 횟수 (1~99회)</div>
+            <div class="flex items-center gap-1.5">
+              <input id="inpByoPeriods" type="number" min="1" max="99" value="3" oninput="syncCustomTimePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-black text-sky-300 text-center outline-none focus:border-amber-400" />
+              <span class="text-xs font-bold text-slate-300 shrink-0">회</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="customTimeSummary" class="text-[11px] text-amber-300 font-bold bg-amber-500/10 border border-amber-500/20 rounded-lg px-2.5 py-1.5">
+          설정 요약: 기본시간 5분 + 초읽기 30초 3회 (마지막 초읽기 소진 시 즉시 시간패)
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="document.getElementById('roomModal').classList.add('hidden')" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold text-slate-300">취소</button>
-        <button onclick="submitRoomModal()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow">대국 시작하기</button>
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" onclick="document.getElementById('roomModal').classList.add('hidden')" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold text-slate-300">취소</button>
+        <button type="button" onclick="submitRoomModal()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow">대국 시작하기</button>
       </div>
     </div>
   </div>
@@ -432,7 +492,7 @@
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
         <div class="flex items-center gap-2">
-          <img src="./icon.png" alt="아이콘" class="w-6 h-6 rounded-lg object-cover" onerror="this.style.display='none'" />
+          <img src="./icon.png" alt="아이콘" class="w-6 h-6 rounded-lg object-cover" />
           <h2 class="text-base font-black text-amber-400">수담 바둑 앱(PWA) 설치 안내</h2>
         </div>
         <button onclick="document.getElementById('pwaModal').classList.add('hidden')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
@@ -440,7 +500,7 @@
       <div class="space-y-3 text-xs text-slate-200 leading-relaxed">
         <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1.5">
           <div class="font-black text-amber-300">📱 iPhone / iPad (Safari)</div>
-          <p class="text-slate-300">브라우저 하단(또는 상단)의 <strong>[공유 <i class="fa-solid fa-arrow-up-from-bracket"></i>]</strong> 버튼을 누른 뒤 <strong>[홈 화면에 추가]</strong>를 선택하면 즉시 앱으로 설치됩니다.</p>
+          <p class="text-slate-300">브라우저 하단(또는 상단)의 <strong>[공유 <i class="fa-solid fa-arrow-up-from-bracket"></i>]</strong> 버튼을 누른 뒤 <strong>[홈 화면에 추가]</strong>를 선택하면 준비하신 아이콘으로 홈 화면에 설치됩니다.</p>
         </div>
         <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1.5">
           <div class="font-black text-sky-300">🤖 Android / PC (Chrome · Edge · 삼성 인터넷)</div>
@@ -459,12 +519,21 @@
     const EMPTY = 0, BLACK = 1, WHITE = 2;
     // 바둑 표준 가로열 표기: 'I'를 제외하고 'J'로 표기 (9번째 열 = J)
     const COL_LABELS = "ABCDEFGHJKLMNOPQRST";
-    const LOBBY_TOPIC = 'baduk_kr_lobby_2026_v4/rooms';
-    const SAVE_KEY = 'baduk_paused_match_v4';
+    const LOBBY_TOPIC = 'baduk_kr_lobby_2026_v5/rooms';
+    const SAVE_KEY = 'baduk_paused_match_v5';
 
     let myName = localStorage.getItem('baduk_nick') || `기사#${Math.floor(1000+Math.random()*9000)}`;
     let soundOn = true, audioCtx = null;
-    let modalTarget = 'online', cfg = { size: 19, stone: 'random', rule: 'korean', time: 30 };
+    let modalTarget = 'online';
+    let cfg = {
+      size: 19,
+      stone: 'random',
+      rule: 'korean',
+      timeMode: 'timed', // 'timed' | 'unlimited'
+      mainSec: 300,      // 기본 시간(초) - 기본값 5분(300초)
+      byoSec: 30,        // 초읽기 1회 시간(초) - 기본값 30초
+      byoPeriods: 3      // 초읽기 횟수(회) - 기본값 3회
+    };
 
     // Active Game State ('host' | 'join' | 'spectate' | 'local')
     let mode = 'host', roomInfo = {}, N = 19, board = [], history = [], hashes = [];
@@ -473,7 +542,13 @@
     let started = false, ended = false, paused = false, scoring = false, previewTerr = false;
     let confirmMode = true, showNumbers = false, pending = null, hover = null;
     let deadSet = new Set(), sekiSet = new Set(), shapeLabels = [], agreed = { 1: false, 2: false };
-    let timeLeft = 30, timerId = null, specCount = 0;
+    let timerId = null, specCount = 0;
+
+    // 흑(1)과 백(2) 각각의 독립적인 시계 상태 (기본시간 + 초읽기 시간 + 초읽기 횟수)
+    let clocks = {
+      1: { mainLeft: 300, byoTimeLeft: 30, byoPeriodsLeft: 3 },
+      2: { mainLeft: 300, byoTimeLeft: 30, byoPeriodsLeft: 3 }
+    };
 
     // Networking: Host manages playerConn + spectatorConns[]
     let mqttClient = null, bc = null, rooms = new Map(), hbTimer = null;
@@ -505,6 +580,33 @@
       document.body.removeChild(ta);
     }
 
+    // 시간 설정 포맷 헬퍼
+    function formatMMSS(sec) {
+      const s = Math.max(0, Math.floor(Number(sec) || 0));
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+    }
+
+    function formatRoomTimeSummary(r) {
+      if (!r || r.timeMode === 'unlimited') return '무제한';
+      const mainS = Number(r.mainSec) || 0;
+      const byoS = Number(r.byoSec) || 30;
+      const byoP = Number(r.byoPeriods) || 1;
+      const m = Math.floor(mainS / 60), s = mainS % 60;
+      const mainTxt = mainS > 0 ? (s > 0 ? `${m}분 ${s}초` : `${m}분`) : '0분';
+      return `${mainTxt} + ${byoS}초×${byoP}회`;
+    }
+
+    function formatPlayerClockShort(col) {
+      if (roomInfo.timeMode === 'unlimited') return '♾️ 무제한';
+      const c = clocks[col] || { mainLeft: 0, byoTimeLeft: 30, byoPeriodsLeft: 1 };
+      if (c.mainLeft > 0) {
+        return `${formatMMSS(c.mainLeft)} + ${roomInfo.byoSec}초×${c.byoPeriodsLeft}`;
+      }
+      return `초읽기 ${c.byoTimeLeft}초 (${c.byoPeriodsLeft}회)`;
+    }
+
     function playClack(isBlack = true) {
       if (!soundOn) return;
       try {
@@ -518,6 +620,21 @@
         g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06);
         osc.connect(g); g.connect(audioCtx.destination);
         osc.start(); osc.stop(audioCtx.currentTime + 0.065);
+      } catch (e) {}
+    }
+
+    function playBeep(freq = 660, dur = 0.08) {
+      if (!soundOn) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        g.gain.setValueAtTime(0.22, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + dur + 0.01);
       } catch (e) {}
     }
 
@@ -536,7 +653,7 @@
     // Lobby Networking (MQTT + BroadcastChannel)
     function initLobby() {
       if ('BroadcastChannel' in window) {
-        bc = new BroadcastChannel('baduk_lobby_v4');
+        bc = new BroadcastChannel('baduk_lobby_v5');
         bc.onmessage = (e) => handleLobbyMsg(e.data);
       }
       try {
@@ -570,7 +687,7 @@
       if (mode !== 'host' || !roomInfo.id) return;
       spectatorConns = spectatorConns.filter(c => c && c.open);
       specCount = spectatorConns.length;
-      const r = { ...roomInfo, moves: history.length, timeLeft, spectators: specCount };
+      const r = { ...roomInfo, moves: history.length, clocks, spectators: specCount };
       rooms.set(r.id, { ...r, ts: Date.now() });
       pubLobby({ type: 'ANNOUNCE', room: r });
     }
@@ -590,6 +707,7 @@
       grid.innerHTML = '';
       list.forEach(r => {
         const isPaused = r.status === 'paused', canPlay = r.status === 'waiting' || isPaused;
+        const timeStr = formatRoomTimeSummary(r);
         const d = document.createElement('div');
         d.className = `bg-slate-950 border ${isPaused ? 'border-amber-400' : 'border-slate-800'} rounded-2xl p-4 flex flex-col justify-between gap-3`;
         d.innerHTML = `
@@ -600,7 +718,7 @@
               </span>
               <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-emerald-300">${r.size}줄</span>
               <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-purple-300">${r.rule === 'chinese' ? '중국(7.5)' : '한국(6.5)'}</span>
-              <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-sky-300">${r.time ? r.time + '초' : '무제한'}</span>
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-sky-300">⏱️ ${timeStr}</span>
               <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-purple-950 border border-purple-700/50 text-purple-200">👁️ 관전 ${r.spectators || 0}명</span>
             </div>
             <h3 class="text-sm sm:text-base font-black text-white truncate">${r.title}</h3>
@@ -628,11 +746,12 @@
       });
     }
 
-    // Room Setup Modal
+    // Room Setup & Custom Direct-Input Timer Modal
     function openRoomModal(target) {
       saveNickname(); modalTarget = target;
       document.getElementById('modalHeader').textContent = target === 'local' ? '1기기 2인 바둑 설정' : '새 온라인 바둑 대국실 만들기';
       document.getElementById('titleRow').classList.toggle('hidden', target === 'local');
+      syncCustomTimePreview();
       document.getElementById('roomModal').classList.remove('hidden');
     }
 
@@ -642,10 +761,60 @@
       Array.from(container.children).forEach(b => b.classList.toggle('opt-active', b.dataset.val == val));
     }
 
+    function setTimeMode(tMode) {
+      cfg.timeMode = tMode;
+      document.getElementById('btnTimeModeTimed').classList.toggle('opt-active', tMode === 'timed');
+      document.getElementById('btnTimeModeUnlim').classList.toggle('opt-active', tMode === 'unlimited');
+      document.getElementById('customTimeInputs').classList.toggle('hidden', tMode === 'unlimited');
+      syncCustomTimePreview();
+    }
+
+    function applyTimePreset(mMin, mSec, bSec, bPer) {
+      setTimeMode('timed');
+      document.getElementById('inpMainMin').value = mMin;
+      document.getElementById('inpMainSec').value = mSec;
+      document.getElementById('inpByoSec').value = bSec;
+      document.getElementById('inpByoPeriods').value = bPer;
+      syncCustomTimePreview();
+    }
+
+    function readCustomTimerInputs() {
+      const mMin = Math.max(0, Math.min(300, parseInt(document.getElementById('inpMainMin').value, 10) || 0));
+      const mSec = Math.max(0, Math.min(59, parseInt(document.getElementById('inpMainSec').value, 10) || 0));
+      const bSec = Math.max(1, Math.min(600, parseInt(document.getElementById('inpByoSec').value, 10) || 30));
+      const bPer = Math.max(1, Math.min(99, parseInt(document.getElementById('inpByoPeriods').value, 10) || 3));
+      cfg.mainSec = mMin * 60 + mSec;
+      cfg.byoSec = bSec;
+      cfg.byoPeriods = bPer;
+    }
+
+    function syncCustomTimePreview() {
+      readCustomTimerInputs();
+      const summaryEl = document.getElementById('customTimeSummary');
+      if (cfg.timeMode === 'unlimited') {
+        summaryEl.textContent = '설정 요약: ♾️ 시간 제한 없음 (무제한 대국)';
+      } else {
+        const mMin = Math.floor(cfg.mainSec / 60), mSec = cfg.mainSec % 60;
+        const mainStr = cfg.mainSec > 0 ? `기본시간 ${mMin}분${mSec > 0 ? ' ' + mSec + '초' : ''}` : '기본시간 없음(즉시 초읽기)';
+        summaryEl.textContent = `설정 요약: ${mainStr} + 초읽기 ${cfg.byoSec}초 ${cfg.byoPeriods}회 (마지막 초읽기 0초 시 시간패)`;
+      }
+    }
+
     function submitRoomModal() {
+      readCustomTimerInputs();
       document.getElementById('roomModal').classList.add('hidden');
       if (modalTarget === 'local') startLocalMatch();
       else createHostRoom();
+    }
+
+    function initClocksFromRoom() {
+      const mainS = roomInfo.timeMode === 'unlimited' ? 0 : (Number(roomInfo.mainSec) || 0);
+      const byoS = roomInfo.timeMode === 'unlimited' ? 0 : Math.max(1, Number(roomInfo.byoSec) || 30);
+      const byoP = roomInfo.timeMode === 'unlimited' ? 0 : Math.max(1, Number(roomInfo.byoPeriods) || 3);
+      clocks = {
+        1: { mainLeft: mainS, byoTimeLeft: byoS, byoPeriodsLeft: byoP },
+        2: { mainLeft: mainS, byoTimeLeft: byoS, byoPeriodsLeft: byoP }
+      };
     }
 
     function initEmptyBoard(size) {
@@ -654,6 +823,7 @@
       history = []; hashes = [ board.map(r => r.join('')).join('|') ];
       koPoint = null; passes = 0; caps = { 1: 0, 2: 0 };
       deadSet.clear(); sekiSet.clear(); shapeLabels = []; agreed = { 1: false, 2: false };
+      initClocksFromRoom();
     }
 
     function showGameView() {
@@ -662,7 +832,7 @@
       document.getElementById('roomTitleLabel').textContent = roomInfo.title;
       document.getElementById('badgeSize').textContent = `${roomInfo.size}줄 바둑`;
       document.getElementById('badgeRule').textContent = roomInfo.rule === 'chinese' ? '🇨🇳 중국 규칙(덤 7.5)' : '🇰🇷 한국 규칙(덤 6.5)';
-      document.getElementById('badgeTime').textContent = roomInfo.time ? `⏱️ ${roomInfo.time}초 초읽기` : '♾️ 무제한';
+      document.getElementById('badgeTime').textContent = `⏱️ ${formatRoomTimeSummary(roomInfo)}`;
 
       const spec = isSpectator();
       document.getElementById('badgeSpecMode').classList.toggle('hidden', !spec);
@@ -709,7 +879,7 @@
     function buildSyncPayload(gCol = WHITE) {
       return {
         type: 'SYNC_STATE', roomInfo, N, board, history, hashes, koPoint, passes,
-        turn, gCol, names, caps, timeLeft, started, ended, paused, scoring,
+        turn, gCol, names, caps, clocks, started, ended, paused, scoring,
         deadArr: Array.from(deadSet), specCount,
         historyCoords: getKifuString()
       };
@@ -721,7 +891,6 @@
       roomInfo = { id, title: document.getElementById('roomTitleInput').value.trim() || '수담 한 판!', host: myName, guest: '대기 중', ...cfg, status: 'waiting' };
       initEmptyBoard(cfg.size);
       started = false; ended = false; paused = false; scoring = false;
-      timeLeft = cfg.time || 0;
       showGameView();
       setWaitBanner(true, '대기실에서 상대방 입장을 기다리는 중...', '대국자 또는 관전자가 실시간으로 입장할 수 있습니다.');
       updateUI();
@@ -768,7 +937,7 @@
             sendToSpectators(syncPkt);
             if (!scoring) startTimer(false);
             updateUI(); drawBoard();
-            const resumeMsg = `▶️ [${roomInfo.guest}]님이 재입장하여 ${history.length}수(남은 초읽기 ${timeLeft}초)부터 이어서 대국합니다!`;
+            const resumeMsg = `▶️ [${roomInfo.guest}]님이 재입장하여 ${history.length}수부터 대국을 이어갑니다!`;
             logChat('시스템', resumeMsg);
             broadcastFromHost({ type: 'CHAT', sender: '시스템', text: resumeMsg });
           } else {
@@ -842,21 +1011,27 @@
         roomInfo = d.roomInfo; N = d.N; board = d.board; history = d.history; hashes = d.hashes;
         koPoint = d.koPoint; passes = d.passes; turn = d.turn;
         if (!isSpectator()) myColor = d.gCol;
-        names = d.names; caps = d.caps; timeLeft = d.timeLeft;
+        names = d.names; caps = d.caps;
+        if (d.clocks) clocks = d.clocks;
         started = d.started; ended = d.ended; paused = d.paused; scoring = d.scoring;
         specCount = d.specCount || 0;
         deadSet = new Set(d.deadArr || []);
-        setWaitBanner(!started || paused, paused ? `⏸️ 대국 일시정지 중 (남은 초읽기: ${timeLeft}초)` : '대국 시작 대기 중...', isSpectator() ? '대국이 시작되면 실시간으로 중계됩니다.' : '잠시만 기다려 주세요.');
+        setWaitBanner(!started || paused, paused ? `⏸️ 대국 일시정지 중 (${formatPlayerClockShort(turn)})` : '대국 시작 대기 중...', isSpectator() ? '대국이 시작되면 실시간으로 중계됩니다.' : '잠시만 기다려 주세요.');
         if (scoring) runAutoLifeDeath(false);
         else if (started && !paused && !ended) startTimer(false);
         updateSpecCountBadge(); updateUI(); resizeCanvas();
       } else if (d.type === 'SPEC_COUNT') {
         specCount = d.count || 0; updateSpecCountBadge();
       } else if (d.type === 'MOVE') {
+        if (d.clocks) clocks = d.clocks;
         placeStone(d.r, d.c, d.color, false);
         if (fromGuestToHost) sendToSpectators(d);
       } else if (d.type === 'PASS') {
+        if (d.clocks) clocks = d.clocks;
         doPass(d.color, false);
+        if (fromGuestToHost) sendToSpectators(d);
+      } else if (d.type === 'CLOCK_SYNC') {
+        if (d.clocks) { clocks = d.clocks; renderTimer(); }
         if (fromGuestToHost) sendToSpectators(d);
       } else if (d.type === 'REQ_SCORE' && !isSpectator()) {
         showOverlay('계가 신청', '상대방이 사석 지정 및 계가를 신청했습니다. 동의하시겠습니까?', [
@@ -893,6 +1068,7 @@
         logChat(d.sender, d.text);
         if (fromGuestToHost) sendToSpectators(d);
       } else if (d.type === 'PAUSED_EXIT') {
+        if (d.clocks) clocks = d.clocks;
         handleOpponentPause(d.name);
         if (fromGuestToHost) sendToSpectators(d);
       }
@@ -914,8 +1090,8 @@
       myColor = hCol;
       names = { [hCol]: roomInfo.host, [gCol]: roomInfo.guest };
       const msg = `🎲 돌가르기 완료: 흑(선공) ${names[BLACK]} vs 백(덤) ${names[WHITE]}`;
-      if (mode === 'host') broadcastFromHost({ type: 'START', roomInfo, gCol, names, msg, specCount });
       initEmptyBoard(roomInfo.size);
+      if (mode === 'host') broadcastFromHost({ type: 'START', roomInfo, gCol, names, msg, specCount });
       started = true; ended = false; paused = false; scoring = false; turn = BLACK;
       logChat('시스템', msg); toast(msg);
       startTimer(true); updateUI(); resizeCanvas(); saveMatch();
@@ -926,8 +1102,8 @@
       if (paused || ended) return;
       paused = true; stopTimer();
       if (!isSpectator()) saveMatch();
-      logChat('시스템', `⏸️ ${leaver}님이 퇴장하여 초읽기가 ${timeLeft}초에서 일시정지되었습니다. 재입장 시 이어서 대국합니다.`);
-      toast('대국자 퇴장으로 초읽기가 일시정지되었습니다.');
+      logChat('시스템', `⏸️ ${leaver}님이 퇴장하여 시계가 일시정지되었습니다. 재입장 시 남은 시간 그대로 이어서 대국합니다.`);
+      toast('대국자 퇴장으로 대국 시계가 일시정지되었습니다.');
       if (mode === 'join') {
         mode = 'host'; roomInfo.host = myName;
         roomInfo.id = 'bdk_rm_' + Date.now().toString(36);
@@ -938,14 +1114,14 @@
       } else if (mode === 'host') {
         roomInfo.status = 'paused'; announceHostRoom();
       }
-      setWaitBanner(true, `⏸️ 일시정지 중 (남은 초읽기: ${roomInfo.time ? timeLeft+'초' : '무제한'})`, '대국자가 대기실에서 [재입장 · 이어하기]를 누르면 즉시 재개됩니다.');
+      setWaitBanner(true, `⏸️ 일시정지 중 (${formatPlayerClockShort(turn)})`, '대국자가 대기실에서 [재입장 · 이어하기]를 누르면 즉시 재개됩니다.');
       updateUI();
     }
 
     function leaveToLobby() {
       if (!isSpectator() && started && !ended) {
         paused = true; stopTimer(); saveMatch();
-        const pkt = { type: 'PAUSED_EXIT', name: myName };
+        const pkt = { type: 'PAUSED_EXIT', name: myName, clocks };
         if (mode === 'host') broadcastFromHost(pkt);
         else if (playerConn && playerConn.open) try { playerConn.send(pkt); } catch (e) {}
       }
@@ -960,7 +1136,7 @@
       if (isSpectator() || !started || ended) return;
       localStorage.setItem(SAVE_KEY, JSON.stringify({
         mode, roomInfo: { ...roomInfo, status: 'paused' }, N, board, history, hashes, koPoint, passes,
-        turn, myColor, names, caps, timeLeft, scoring, deadArr: Array.from(deadSet)
+        turn, myColor, names, caps, clocks, scoring, deadArr: Array.from(deadSet)
       }));
     }
 
@@ -971,7 +1147,8 @@
         const s = JSON.parse(raw);
         b.classList.remove('hidden');
         document.getElementById('savedTitle').textContent = `${s.roomInfo.title} (${s.N}줄 · ${s.history.length}수 진행)`;
-        document.getElementById('savedDesc').textContent = `남은 초읽기: ${s.roomInfo.time ? s.timeLeft + '초' : '무제한'} | 흑(${s.names[1]}) vs 백(${s.names[2]})`;
+        const tSummary = formatRoomTimeSummary(s.roomInfo);
+        document.getElementById('savedDesc').textContent = `시간 설정: ${tSummary} | 흑(${s.names[1]}) vs 백(${s.names[2]})`;
       } catch (e) { b.classList.add('hidden'); }
     }
 
@@ -981,9 +1158,10 @@
       const raw = localStorage.getItem(SAVE_KEY); if (!raw) return;
       const s = JSON.parse(raw); cleanupPeer();
       N = s.N; board = s.board; history = s.history; hashes = s.hashes; koPoint = s.koPoint; passes = s.passes;
-      turn = s.turn; myColor = s.myColor; names = s.names; caps = s.caps; timeLeft = s.timeLeft;
-      scoring = s.scoring; deadSet = new Set(s.deadArr || []); started = true; ended = false;
+      turn = s.turn; myColor = s.myColor; names = s.names; caps = s.caps;
       roomInfo = { ...s.roomInfo, host: myName };
+      if (s.clocks) clocks = s.clocks; else initClocksFromRoom();
+      scoring = s.scoring; deadSet = new Set(s.deadArr || []); started = true; ended = false;
       if (s.mode === 'local') {
         mode = 'local'; paused = false; showGameView(); setWaitBanner(false);
         if (!scoring) startTimer(false); updateUI(); drawBoard();
@@ -991,7 +1169,7 @@
         mode = 'host'; paused = true;
         roomInfo.id = 'bdk_rm_' + Date.now().toString(36);
         showGameView();
-        setWaitBanner(true, `⏸️ 일시정지된 대국 재개 대기 (남은 시간: ${timeLeft}초)`, '대기실 목록에 [재입장 가능]으로 표시되었습니다.');
+        setWaitBanner(true, `⏸️ 일시정지된 대국 재개 대기 (${formatPlayerClockShort(turn)})`, '대기실 목록에 [재입장 가능]으로 표시되었습니다.');
         updateUI(); drawBoard();
         peer = new Peer(roomInfo.id);
         peer.on('open', () => { announceHostRoom(); hbTimer = setInterval(announceHostRoom, 2800); });
@@ -1069,12 +1247,23 @@
       const v = validateMove(r, c, col);
       if (!v.ok) { if (send) toast(v.msg); return; }
 
-      history.push({ r, c, col, snap: board.map(row => row.slice()), caps: { ...caps }, ko: koPoint });
+      // 착수 완료 시 초읽기 중이었다면 해당 플레이어의 초읽기 초(byoTimeLeft)를 다시 설정값으로 복원(횟수는 유지)
+      if (roomInfo.timeMode !== 'unlimited' && clocks[col] && clocks[col].mainLeft <= 0) {
+        clocks[col].byoTimeLeft = Number(roomInfo.byoSec) || 30;
+      }
+
+      history.push({
+        r, c, col,
+        snap: board.map(row => row.slice()),
+        caps: { ...caps },
+        ko: koPoint,
+        clocksSnap: JSON.parse(JSON.stringify(clocks))
+      });
       board = v.next; hashes.push(v.h); koPoint = v.nextKo; passes = 0;
       caps[col] += v.captured.length;
       playClack(col === BLACK);
       pending = null;
-      if (send && mode !== 'local') sendGameAction({ type: 'MOVE', r, c, color: col });
+      if (send && mode !== 'local') sendGameAction({ type: 'MOVE', r, c, color: col, clocks });
 
       turn = turn === BLACK ? WHITE : BLACK;
       startTimer(true); updateUI(); drawBoard(); saveMatch();
@@ -1087,9 +1276,18 @@
     }
 
     function doPass(col, send = true) {
-      history.push({ pass: true, col, snap: board.map(row => row.slice()), caps: { ...caps }, ko: koPoint });
+      if (roomInfo.timeMode !== 'unlimited' && clocks[col] && clocks[col].mainLeft <= 0) {
+        clocks[col].byoTimeLeft = Number(roomInfo.byoSec) || 30;
+      }
+      history.push({
+        pass: true, col,
+        snap: board.map(row => row.slice()),
+        caps: { ...caps },
+        ko: koPoint,
+        clocksSnap: JSON.parse(JSON.stringify(clocks))
+      });
       koPoint = null; passes++; pending = null;
-      if (send && mode !== 'local') sendGameAction({ type: 'PASS', color: col });
+      if (send && mode !== 'local') sendGameAction({ type: 'PASS', color: col, clocks });
       logChat('시스템', `⏭️ ${col === BLACK ? '흑' : '백'}이 [한수쉼]을 선언했습니다.`);
       if (passes >= 2) { enterScoring(false); return; }
       turn = turn === BLACK ? WHITE : BLACK;
@@ -1342,19 +1540,73 @@
       updateUI(); drawBoard();
     }
 
-    // Timer & Immediate Timeout Loss (시간패)
-    function startTimer(reset = true) {
+    // =========================================================================
+    // AUTHENTIC BADUK CLOCK ENGINE (기본 시간 + 초읽기 시간 + 초읽기 횟수)
+    // =========================================================================
+    function startTimer(resetByoForNewTurn = true) {
       stopTimer();
-      if (!roomInfo.time || Number(roomInfo.time) <= 0) { renderTimer(); return; }
-      if (reset) timeLeft = Number(roomInfo.time);
+      if (roomInfo.timeMode === 'unlimited') {
+        renderTimer();
+        return;
+      }
+      const c = clocks[turn];
+      if (!c) return;
+      if (resetByoForNewTurn && c.mainLeft <= 0) {
+        c.byoTimeLeft = Math.max(1, Number(roomInfo.byoSec) || 30);
+      }
       renderTimer();
       if (!started || ended || paused || scoring) return;
+
       timerId = setInterval(() => {
         if (paused || scoring || ended) { stopTimer(); return; }
-        timeLeft--; renderTimer();
-        if (timeLeft <= 0) {
-          stopTimer();
-          if (!isSpectator() && (mode === 'local' || mode === 'host' || turn === myColor)) finishByTimeout(turn, true);
+        const cur = clocks[turn];
+        if (!cur) return;
+
+        // 1단계: 기본 시간(mainLeft) 차감
+        if (cur.mainLeft > 0) {
+          cur.mainLeft--;
+          if (cur.mainLeft === 0) {
+            cur.byoTimeLeft = Math.max(1, Number(roomInfo.byoSec) || 30);
+            playBeep(520, 0.14);
+            const pLabel = turn === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
+            toast(`⏱️ ${pLabel} 기본시간 소진! 초읽기(${roomInfo.byoSec}초×${cur.byoPeriodsLeft}회)에 진입합니다.`);
+          }
+          renderTimer();
+          return;
+        }
+
+        // 2단계: 초읽기(byoTimeLeft) 차감
+        cur.byoTimeLeft--;
+        if (cur.byoTimeLeft <= 5 && cur.byoTimeLeft > 0) {
+          playBeep(cur.byoPeriodsLeft === 1 ? 880 : 660, 0.07);
+        }
+
+        if (cur.byoTimeLeft <= 0) {
+          // 초읽기 횟수가 2회 이상 남았으면 1회 차감 후 다시 초읽기 시간 리셋
+          if (cur.byoPeriodsLeft > 1) {
+            cur.byoPeriodsLeft--;
+            cur.byoTimeLeft = Math.max(1, Number(roomInfo.byoSec) || 30);
+            playBeep(440, 0.22);
+            const pLabel = turn === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
+            if (cur.byoPeriodsLeft === 1) {
+              toast(`🚨 [마지막 초읽기] ${pLabel} 초읽기 1회 남았습니다! (다음 0초 시 시간패)`);
+            } else {
+              toast(`⏱️ ${pLabel} 초읽기 1회 차감! (남은 초읽기: ${cur.byoPeriodsLeft}회)`);
+            }
+            if (mode === 'host') broadcastFromHost({ type: 'CLOCK_SYNC', clocks });
+            renderTimer();
+          } else {
+            // 마지막 초읽기(1회)마저 0초가 되면 즉시 시간패!
+            cur.byoPeriodsLeft = 0;
+            cur.byoTimeLeft = 0;
+            renderTimer();
+            stopTimer();
+            if (!isSpectator() && (mode === 'local' || mode === 'host' || turn === myColor)) {
+              finishByTimeout(turn, true);
+            }
+          }
+        } else {
+          renderTimer();
         }
       }, 1000);
     }
@@ -1362,10 +1614,46 @@
     function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
 
     function renderTimer() {
-      const lbl = document.getElementById('timerLabel'), bar = document.getElementById('timerBar');
-      if (!roomInfo.time || Number(roomInfo.time) <= 0) { lbl.textContent = '무제한'; bar.style.width = '100%'; return; }
-      lbl.textContent = paused ? `${timeLeft}초(정지)` : `${Math.max(0, timeLeft)}초`;
-      bar.style.width = `${Math.max(0, (timeLeft / roomInfo.time) * 100)}%`;
+      const lbl = document.getElementById('timerLabel');
+      const bar = document.getElementById('timerBar');
+      const topB = document.getElementById('topClockBlack');
+      const topW = document.getElementById('topClockWhite');
+      const cardB = document.getElementById('clockBlackCard');
+      const cardW = document.getElementById('clockWhiteCard');
+
+      if (topB) topB.textContent = formatPlayerClockShort(BLACK);
+      if (topW) topW.textContent = formatPlayerClockShort(WHITE);
+      if (cardB) cardB.textContent = `⏱️ ${formatPlayerClockShort(BLACK)}`;
+      if (cardW) cardW.textContent = `⏱️ ${formatPlayerClockShort(WHITE)}`;
+
+      document.getElementById('topStripBlack').className = `flex items-center justify-between bg-slate-950/90 border ${started && !ended && !paused && !scoring && turn === BLACK ? 'border-amber-400' : 'border-slate-800'} rounded-lg px-2 py-1`;
+      document.getElementById('topStripWhite').className = `flex items-center justify-between bg-slate-950/90 border ${started && !ended && !paused && !scoring && turn === WHITE ? 'border-amber-400' : 'border-slate-800'} rounded-lg px-2 py-1`;
+
+      if (roomInfo.timeMode === 'unlimited') {
+        lbl.textContent = '♾️ 무제한';
+        lbl.className = 'font-black text-white text-xs sm:text-sm';
+        bar.style.width = '100%';
+        return;
+      }
+
+      const cur = clocks[turn] || { mainLeft: 0, byoTimeLeft: 30, byoPeriodsLeft: 1 };
+      const pauseSuffix = paused ? ' (일시정지)' : '';
+      if (cur.mainLeft > 0) {
+        lbl.textContent = `기본 ${formatMMSS(cur.mainLeft)}${pauseSuffix}`;
+        lbl.className = 'font-black text-emerald-300 text-xs sm:text-sm';
+        const totalMain = Math.max(1, Number(roomInfo.mainSec) || 1);
+        bar.style.width = `${Math.min(100, Math.max(0, (cur.mainLeft / totalMain) * 100))}%`;
+      } else {
+        const isLast = cur.byoPeriodsLeft <= 1;
+        lbl.textContent = isLast
+          ? `🚨 마지막 초읽기 ${Math.max(0, cur.byoTimeLeft)}초!${pauseSuffix}`
+          : `초읽기 ${Math.max(0, cur.byoTimeLeft)}초 · ${cur.byoPeriodsLeft}회${pauseSuffix}`;
+        lbl.className = isLast
+          ? 'font-black text-rose-400 text-xs sm:text-sm animate-pulse'
+          : 'font-black text-amber-300 text-xs sm:text-sm';
+        const totalByo = Math.max(1, Number(roomInfo.byoSec) || 30);
+        bar.style.width = `${Math.min(100, Math.max(0, (cur.byoTimeLeft / totalByo) * 100))}%`;
+      }
     }
 
     function finishByTimeout(loser, send = true) {
@@ -1378,7 +1666,7 @@
       const btns = [{ label: '📋 기보 텍스트 복사', fn: () => copyKifuText() }];
       if (!isSpectator()) btns.push({ label: '새 대국 시작', primary: true, fn: () => { closeOverlay(); assignColorsAndStart(); } });
       btns.push({ label: '대기실로', fn: () => leaveToLobby() });
-      showOverlay(`⏱️ 시간초과! ${wStr} 시간승!`, `${lStr}님이 초읽기 제한 시간(${roomInfo.time}초)을 초과하여 즉시 시간패 처리되었습니다.`, btns);
+      showOverlay(`⏱️ 시간초과! ${wStr} 시간승!`, `${lStr}님이 마지막 초읽기 시간을 모두 소진하여 즉시 시간패 처리되었습니다.`, btns);
       updateUI();
     }
 
@@ -1413,7 +1701,11 @@
     function doUndo(steps = 1) {
       for (let i = 0; i < steps; i++) {
         const last = history.pop();
-        if (last) { board = last.snap; caps = last.caps; koPoint = last.ko; turn = last.col; if (!last.pass && hashes.length > 1) hashes.pop(); }
+        if (last) {
+          board = last.snap; caps = last.caps; koPoint = last.ko; turn = last.col;
+          if (last.clocksSnap) clocks = last.clocksSnap;
+          if (!last.pass && hashes.length > 1) hashes.pop();
+        }
       }
       passes = 0; pending = null; startTimer(true); updateUI(); drawBoard(); saveMatch();
     }
@@ -1589,6 +1881,8 @@
       else if (ended) tLbl.textContent = `${prefix}🏁 대국 종료`;
       else tLbl.textContent = `${prefix}${turn === BLACK ? `⚫ 흑 차례 (${names[BLACK]})` : `⚪ 백 차례 (${names[WHITE]})`}`;
 
+      renderTimer();
+
       if (!isSpectator()) {
         const btnPlace = document.getElementById('btnPlace');
         const coordBadge = document.getElementById('coordBadge');
@@ -1656,13 +1950,61 @@
     }
 
     // =========================================================================
-    // PWA & ZERO-DELAY UPDATE ARCHITECTURE (icon.ico, icon.png, manifest.json, sw.js)
+    // PWA ICON NORMALIZER (icon.ico, icon.png) & ZERO-DELAY UPDATE ENGINE
     // =========================================================================
     let deferredPwaPrompt = null;
     let pwaBannerDismissed = false;
     let initialHtmlSignature = null;
 
-    // 1. 이용자 앱 설치 여부 확인 및 미설치 이용자에게만 [📲 앱 설치] 버튼 노출
+    // 사용자의 ./icon.png 원본 해상도가 192x192 또는 512x512가 아니더라도
+    // 캔버스로 정확한 규격 이미지를 생성해 iOS/Android 아이콘 누락을 방지하되,
+    // ./manifest.json 연결은 절대 덮어쓰지 않고 유지(단, fetch 실패 시에만 폴백)
+    function normalizeUserIconsAndManifest() {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = async () => {
+        try {
+          const makeSizedPng = (sz) => {
+            const c = document.createElement('canvas');
+            c.width = sz; c.height = sz;
+            const cx = c.getContext('2d');
+            cx.drawImage(img, 0, 0, sz, sz);
+            return c.toDataURL('image/png');
+          };
+          const png180 = makeSizedPng(180);
+          const png192 = makeSizedPng(192);
+          const png512 = makeSizedPng(512);
+
+          const appleLink = document.getElementById('apple-touch-icon-link');
+          if (appleLink) appleLink.href = png180;
+
+          // ./manifest.json 이 정상 존재하는지 확인하고, 없을 때만 동적 매니페스트 폴백
+          try {
+            const res = await fetch('./manifest.json', { cache: 'no-store' });
+            if (!res.ok) throw new Error('manifest missing');
+          } catch (err) {
+            const dynManifest = {
+              name: '클라우드 수담(手談) 바둑',
+              short_name: '수담 바둑',
+              start_url: location.href.split('?')[0],
+              scope: './',
+              display: 'standalone',
+              background_color: '#090d16',
+              theme_color: '#0f172a',
+              icons: [
+                { src: png192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+                { src: png512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+              ]
+            };
+            const blob = new Blob([JSON.stringify(dynManifest)], { type: 'application/manifest+json' });
+            const mLink = document.getElementById('pwa-manifest-link');
+            if (mLink) mLink.href = URL.createObjectURL(blob);
+          }
+        } catch (e) {}
+      };
+      img.src = './icon.png';
+    }
+
     function isAppInstalled() {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
                            window.matchMedia('(display-mode: fullscreen)').matches ||
@@ -1706,7 +2048,6 @@
       }
     }
 
-    // 2. 코드 업데이트 시 캐시 지연 방지 엔진 (Zero-Delay Live Code Check & Cache Purge)
     async function clearAllBrowserCaches() {
       if ('caches' in window) {
         try {
@@ -1774,6 +2115,7 @@
 
     async function initZeroDelayPwa() {
       await clearAllBrowserCaches();
+      normalizeUserIconsAndManifest();
 
       window.addEventListener('beforeinstallprompt', e => {
         e.preventDefault();
