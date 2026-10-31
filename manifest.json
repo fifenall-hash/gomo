@@ -1,0 +1,25 @@
+{
+  "name": "온라인 바둑 (Online Baduk)",
+  "short_name": "온라인 바둑",
+  "description": "실시간 대기실 매칭, 9~19줄, 한/중 계가 및 귀곡사 자동 판정을 지원하는 온라인 바둑 앱",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0c0a09",
+  "theme_color": "#0c0a09",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='110' fill='%23dcb35c'/><line x1='170' y1='60' x2='170' y2='452' stroke='%23221a0f' stroke-width='10'/><line x1='342' y1='60' x2='342' y2='452' stroke='%23221a0f' stroke-width='10'/><line x1='60' y1='170' x2='452' y2='170' stroke='%23221a0f' stroke-width='10'/><line x1='60' y1='342' x2='452' y2='342' stroke='%23221a0f' stroke-width='10'/><circle cx='170' cy='170' r='68' fill='%23111111'/><circle cx='342' cy='342' r='68' fill='%23111111'/><circle cx='342' cy='170' r='68' fill='%23f8fafc' stroke='%23cbd5e1' stroke-width='6'/><circle cx='170' cy='342' r='68' fill='%23f8fafc' stroke='%23cbd5e1' stroke-width='6'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='110' fill='%23dcb35c'/><line x1='170' y1='60' x2='170' y2='452' stroke='%23221a0f' stroke-width='10'/><line x1='342' y1='60' x2='342' y2='452' stroke='%23221a0f' stroke-width='10'/><line x1='60' y1='170' x2='452' y2='170' stroke='%23221a0f' stroke-width='10'/><line x1='60' y1='342' x2='452' y2='342' stroke='%23221a0f' stroke-width='10'/><circle cx='170' cy='170' r='68' fill='%23111111'/><circle cx='342' cy='342' r='68' fill='%23111111'/><circle cx='342' cy='170' r='68' fill='%23f8fafc' stroke='%23cbd5e1' stroke-width='6'/><circle cx='170' cy='342' r='68' fill='%23f8fafc' stroke='%23cbd5e1' stroke-width='6'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
