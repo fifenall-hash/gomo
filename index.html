@@ -13,12 +13,13 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="수담 바둑" />
-  <!-- 외부 준비 파일 표준 연결: icon.ico, icon.png, manifest.json -->
-  <link rel="icon" type="image/x-icon" href="./icon.ico" />
-  <link rel="shortcut icon" type="image/x-icon" href="./icon.ico" />
+  <!-- 외부 준비 파일 표준 연결: icon.ico (256x256), icon.png (289x289), manifest.json -->
+  <link rel="icon" type="image/x-icon" sizes="256x256" href="./icon.ico" />
+  <link rel="shortcut icon" type="image/x-icon" sizes="256x256" href="./icon.ico" />
+  <link rel="icon" type="image/png" sizes="289x289" href="./icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" id="icon-192-link" href="./icon.png" />
   <link rel="icon" type="image/png" sizes="512x512" id="icon-512-link" href="./icon.png" />
-  <link rel="apple-touch-icon" sizes="180x180" id="apple-touch-icon-link" href="./icon.png" />
+  <link rel="apple-touch-icon" id="apple-touch-icon-link" href="./icon.png" sizes="289x289" />
   <link rel="manifest" id="pwa-manifest-link" href="./manifest.json" />
   <title>클라우드 수담(手談) 바둑 - 실시간 대기실 · 관전 · 정밀 계가</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -154,41 +155,59 @@
   <!-- VIEW 2: ACTIVE BADUK GAME & SPECTATOR VIEW -->
   <main id="gameView" class="hidden flex-1 max-w-6xl w-full mx-auto px-2.5 sm:px-6 py-2.5 sm:py-4 grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
 
-    <!-- Right Column (First on Mobile): Top Timer Bar + Baduk Board + Bottom Action Bar -->
+    <!-- Right Column (First on Mobile): Top Timer & Action Bar + Baduk Board + Bottom Full-Width Place Button -->
     <section class="lg:col-span-7 flex flex-col items-center order-1 lg:order-2 w-full gap-2">
 
-      <!-- TOP BYOYOMI & MAIN TIME BAR (Directly above the board for 1-screen mobile visibility) -->
-      <div class="w-full max-w-[560px] bg-slate-900/95 border border-slate-700 rounded-2xl px-3 py-2 shadow-lg space-y-1.5">
-        <div class="flex items-center justify-between text-xs gap-2">
-          <div class="flex items-center gap-2 min-w-0">
-            <span id="turnLabel" class="font-black text-amber-400 truncate">대국 준비 중</span>
-            <span id="koLabel" class="hidden sm:inline-block text-[11px] text-rose-400 font-bold"></span>
+      <!-- TOP TIMER BAR & TOP 4 ACTION BUTTONS (Directly above the board, width synced to board) -->
+      <div id="topControlWrap" class="w-full max-w-[560px] flex flex-col gap-1.5">
+        <div class="w-full bg-slate-900/95 border border-slate-700 rounded-2xl px-3 py-2 shadow-lg space-y-1.5">
+          <div class="flex items-center justify-between text-xs gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span id="turnLabel" class="font-black text-amber-400 truncate">대국 준비 중</span>
+              <span id="koLabel" class="hidden sm:inline-block text-[11px] text-rose-400 font-bold"></span>
+            </div>
+            <div class="font-mono flex items-center gap-1.5 shrink-0">
+              <i class="fa-regular fa-clock text-amber-400 text-xs"></i>
+              <span id="timerLabel" class="font-black text-white text-xs sm:text-sm">기본 05:00</span>
+              <span class="text-slate-600">|</span>
+              <span id="moveCountLabel" class="text-slate-300 font-bold text-xs">0수</span>
+            </div>
           </div>
-          <div class="font-mono flex items-center gap-1.5 shrink-0">
-            <i class="fa-regular fa-clock text-amber-400 text-xs"></i>
-            <span id="timerLabel" class="font-black text-white text-xs sm:text-sm">기본 05:00</span>
-            <span class="text-slate-600">|</span>
-            <span id="moveCountLabel" class="text-slate-300 font-bold text-xs">0수</span>
+          <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div id="timerBar" class="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-300" style="width:100%"></div>
+          </div>
+          <!-- Compact Dual Clock Strip for Black & White -->
+          <div class="grid grid-cols-2 gap-2 pt-0.5 text-[11px] font-mono">
+            <div id="topStripBlack" class="flex items-center justify-between bg-slate-950/90 border border-slate-800 rounded-lg px-2 py-1">
+              <span class="font-sans font-bold text-slate-200 flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-400 inline-block"></span>흑</span>
+              <span id="topClockBlack" class="font-bold text-amber-300">05:00 + 30초×3</span>
+            </div>
+            <div id="topStripWhite" class="flex items-center justify-between bg-slate-950/90 border border-slate-800 rounded-lg px-2 py-1">
+              <span class="font-sans font-bold text-slate-200 flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-white border border-slate-400 inline-block"></span>백</span>
+              <span id="topClockWhite" class="font-bold text-sky-300">05:00 + 30초×3</span>
+            </div>
           </div>
         </div>
-        <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-          <div id="timerBar" class="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-300" style="width:100%"></div>
-        </div>
-        <!-- Compact Dual Clock Strip for Black & White -->
-        <div class="grid grid-cols-2 gap-2 pt-0.5 text-[11px] font-mono">
-          <div id="topStripBlack" class="flex items-center justify-between bg-slate-950/90 border border-slate-800 rounded-lg px-2 py-1">
-            <span class="font-sans font-bold text-slate-200 flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-400 inline-block"></span>흑</span>
-            <span id="topClockBlack" class="font-bold text-amber-300">05:00 + 30초×3</span>
-          </div>
-          <div id="topStripWhite" class="flex items-center justify-between bg-slate-950/90 border border-slate-800 rounded-lg px-2 py-1">
-            <span class="font-sans font-bold text-slate-200 flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-white border border-slate-400 inline-block"></span>백</span>
-            <span id="topClockWhite" class="font-bold text-sky-300">05:00 + 30초×3</span>
-          </div>
+
+        <!-- Top 4 Action Buttons Directly Above Board: 한수쉼, 계가, 기권, 기보 텍스트 복사 -->
+        <div id="topActionBtns" class="grid grid-cols-4 gap-1.5 w-full">
+          <button id="btnPass" onclick="passTurn()" class="py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-sky-300 text-xs font-bold text-center shadow transition">
+            한수쉼
+          </button>
+          <button id="btnScore" onclick="requestScoring()" class="py-2 rounded-xl bg-purple-950/85 hover:bg-purple-900 border border-purple-700/80 text-purple-200 text-xs font-bold text-center shadow transition">
+            계가
+          </button>
+          <button id="btnResign" onclick="confirmResign()" class="py-2 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-800/80 text-rose-300 text-xs font-bold text-center shadow transition">
+            기권
+          </button>
+          <button id="btnTopKifu" onclick="copyKifuText()" class="py-2 px-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-[11px] sm:text-xs font-bold text-center shadow transition truncate">
+            기보 텍스트 복사
+          </button>
         </div>
       </div>
 
       <!-- BADUK BOARD CANVAS (Coordinate labels hidden as requested) -->
-      <div class="relative w-full max-w-[560px] aspect-square board-frame rounded-2xl p-1 sm:p-1.5 flex items-center justify-center">
+      <div id="boardFrame" class="relative w-full max-w-[560px] aspect-square board-frame rounded-2xl p-1 sm:p-1.5 flex items-center justify-center">
         <canvas id="goCanvas"></canvas>
 
         <!-- Modal Overlay inside Board for Result / Requests -->
@@ -201,37 +220,12 @@
         </div>
       </div>
 
-      <!-- PLAYER OUTSIDE BOTTOM CONTROL BAR ('착수', '한수쉼', '계가', '기보 텍스트 복사', '기권') -->
-      <div id="extBar" class="w-full max-w-[560px] bg-slate-900/95 border border-slate-700 rounded-2xl px-3 py-2.5 shadow-xl flex flex-col gap-2">
-        <div class="flex items-center justify-between gap-2 min-w-0">
-          <div class="flex items-center gap-2 min-w-0">
-            <div id="coordBadge" class="w-7 h-7 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400 text-xs font-mono font-black shrink-0">
-              <i class="fa-solid fa-crosshairs"></i>
-            </div>
-            <div class="min-w-0">
-              <div id="extTitle" class="text-xs font-bold text-slate-200 truncate">바둑판 교차점을 선택하세요</div>
-              <div id="extSub" class="text-[10px] text-slate-400 truncate">교차점 선택 후 [착수] 또는 [한수쉼]</div>
-            </div>
-          </div>
-          <button onclick="copyKifuText()" class="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-[11px] font-bold shrink-0 flex items-center gap-1">
-            <i class="fa-regular fa-copy"></i> 기보 텍스트 복사
-          </button>
-        </div>
-
-        <div class="grid grid-cols-4 gap-1.5">
-          <button id="btnPlace" onclick="confirmPendingMove()" disabled class="py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow disabled:opacity-35 disabled:pointer-events-none flex items-center justify-center gap-1">
-            <i class="fa-solid fa-check"></i> 착수
-          </button>
-          <button id="btnPass" onclick="passTurn()" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 text-xs font-bold text-center">
-            한수쉼
-          </button>
-          <button id="btnScore" onclick="requestScoring()" class="py-2 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700 text-purple-200 text-xs font-bold text-center">
-            계가
-          </button>
-          <button id="btnResign" onclick="confirmResign()" class="py-2 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs font-bold text-center">
-            기권
-          </button>
-        </div>
+      <!-- PLAYER OUTSIDE BOTTOM FULL-WIDTH PLACE BUTTON ('착수' — exact same horizontal width as board) -->
+      <div id="extBar" class="w-full max-w-[560px]">
+        <button id="btnPlace" onclick="confirmPendingMove()" disabled class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-sm sm:text-base shadow-xl border-2 border-amber-300/80 disabled:opacity-35 disabled:pointer-events-none transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-circle-check"></i>
+          <span id="btnPlaceText">착수</span>
+        </button>
       </div>
 
       <!-- SPECTATOR DEDICATED BOTTOM STATUS BAR -->
@@ -436,20 +430,20 @@
 
         <!-- Quick Presets -->
         <div class="flex flex-wrap items-center gap-1 pt-0.5">
-          <span class="text-[10px] text-slate-400 mr-1">빠른 프리셋:</span>
-          <button type="button" onclick="applyTimePreset(0,0,20,3)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-200 border border-slate-700">초속기 (0분+20초×3회)</button>
-          <button type="button" onclick="applyTimePreset(5,0,30,3)" class="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-[10px] font-bold text-amber-300 border border-amber-500/40">속기 (5분+30초×3회)</button>
-          <button type="button" onclick="applyTimePreset(10,0,40,3)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-200 border border-slate-700">표준 (10분+40초×3회)</button>
-          <button type="button" onclick="applyTimePreset(30,0,60,5)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-200 border border-slate-700">장고 (30분+60초×5회)</button>
+          <span class="text-[10px] text-slate-400 mr-1">빠른 입력:</span>
+          <button type="button" onclick="applyTimePreset(1,0,20,3)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-200 border border-slate-700">속기 1분+20초×3회</button>
+          <button type="button" onclick="applyTimePreset(5,0,30,3)" class="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-[10px] font-bold text-amber-300 border border-amber-500/40">표준 5분+30초×3회</button>
+          <button type="button" onclick="applyTimePreset(10,0,40,5)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-200 border border-slate-700">장고 10분+40초×5회</button>
+          <button type="button" onclick="applyTimePreset(0,0,30,3)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-200 border border-slate-700">초읽기만 0분+30초×3회</button>
         </div>
 
         <!-- Direct Numeric Input Fields -->
         <div id="customTimeInputs" class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
           <!-- 기본 시간 (분 / 초) -->
           <div class="bg-slate-900 border border-slate-800 rounded-xl p-2">
-            <div class="text-[10px] font-bold text-slate-400 mb-1">기본 시간 (0분 0초면 즉시 초읽기)</div>
+            <div class="text-[10px] font-bold text-slate-400 mb-1">기본 시간 (0~180분 / 0~59초)</div>
             <div class="flex items-center gap-1">
-              <input id="inpMainMin" type="number" min="0" max="300" value="5" oninput="syncCustomTimePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-black text-white text-center outline-none focus:border-amber-400" />
+              <input id="inpMainMin" type="number" min="0" max="180" value="5" oninput="syncCustomTimePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-black text-white text-center outline-none focus:border-amber-400" />
               <span class="text-xs font-bold text-slate-300 shrink-0">분</span>
               <input id="inpMainSec" type="number" min="0" max="59" value="0" oninput="syncCustomTimePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-black text-white text-center outline-none focus:border-amber-400" />
               <span class="text-xs font-bold text-slate-300 shrink-0">초</span>
@@ -458,18 +452,18 @@
 
           <!-- 초읽기 시간 (초) -->
           <div class="bg-slate-900 border border-slate-800 rounded-xl p-2">
-            <div class="text-[10px] font-bold text-slate-400 mb-1">초읽기 1회당 시간 (1~600초)</div>
+            <div class="text-[10px] font-bold text-slate-400 mb-1">초읽기 1회당 시간 (5~300초)</div>
             <div class="flex items-center gap-1.5">
-              <input id="inpByoSec" type="number" min="1" max="600" value="30" oninput="syncCustomTimePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-black text-amber-300 text-center outline-none focus:border-amber-400" />
+              <input id="inpByoSec" type="number" min="5" max="300" value="30" oninput="syncCustomTimePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-black text-amber-300 text-center outline-none focus:border-amber-400" />
               <span class="text-xs font-bold text-slate-300 shrink-0">초</span>
             </div>
           </div>
 
           <!-- 초읽기 횟수 (회) -->
           <div class="bg-slate-900 border border-slate-800 rounded-xl p-2">
-            <div class="text-[10px] font-bold text-slate-400 mb-1">초읽기 횟수 (1~99회)</div>
+            <div class="text-[10px] font-bold text-slate-400 mb-1">초읽기 횟수 (1~20회)</div>
             <div class="flex items-center gap-1.5">
-              <input id="inpByoPeriods" type="number" min="1" max="99" value="3" oninput="syncCustomTimePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-black text-sky-300 text-center outline-none focus:border-amber-400" />
+              <input id="inpByoPeriods" type="number" min="1" max="20" value="3" oninput="syncCustomTimePreview()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-black text-sky-300 text-center outline-none focus:border-amber-400" />
               <span class="text-xs font-bold text-slate-300 shrink-0">회</span>
             </div>
           </div>
@@ -779,10 +773,10 @@
     }
 
     function readCustomTimerInputs() {
-      const mMin = Math.max(0, Math.min(300, parseInt(document.getElementById('inpMainMin').value, 10) || 0));
+      const mMin = Math.max(0, Math.min(180, parseInt(document.getElementById('inpMainMin').value, 10) || 0));
       const mSec = Math.max(0, Math.min(59, parseInt(document.getElementById('inpMainSec').value, 10) || 0));
-      const bSec = Math.max(1, Math.min(600, parseInt(document.getElementById('inpByoSec').value, 10) || 30));
-      const bPer = Math.max(1, Math.min(99, parseInt(document.getElementById('inpByoPeriods').value, 10) || 3));
+      const bSec = Math.max(5, Math.min(300, parseInt(document.getElementById('inpByoSec').value, 10) || 30));
+      const bPer = Math.max(1, Math.min(20, parseInt(document.getElementById('inpByoPeriods').value, 10) || 3));
       cfg.mainSec = mMin * 60 + mSec;
       cfg.byoSec = bSec;
       cfg.byoPeriods = bPer;
@@ -838,6 +832,10 @@
       document.getElementById('badgeSpecMode').classList.toggle('hidden', !spec);
       document.getElementById('extBar').classList.toggle('hidden', spec);
       document.getElementById('specBar').classList.toggle('hidden', !spec);
+      document.getElementById('btnPass').classList.toggle('hidden', spec);
+      document.getElementById('btnScore').classList.toggle('hidden', spec);
+      document.getElementById('btnResign').classList.toggle('hidden', spec);
+      document.getElementById('topActionBtns').className = spec ? 'grid grid-cols-1 gap-1.5 w-full' : 'grid grid-cols-4 gap-1.5 w-full';
       document.getElementById('lblConfirmWrap').classList.toggle('hidden', spec);
       document.getElementById('btnUndo').classList.toggle('hidden', spec);
       document.getElementById('btnAutoJudge').classList.toggle('hidden', spec);
@@ -846,7 +844,7 @@
         : '<i class="fa-solid fa-pause mr-1"></i>대기실로 (일시정지)';
 
       updateSpecCountBadge();
-      setTimeout(resizeCanvas, 30);
+      setTimeout(() => { resizeCanvas(); syncBoardControlsWidth(); }, 30);
     }
 
     function updateSpecCountBadge() {
@@ -1713,12 +1711,28 @@
     // Board Canvas Rendering (No coordinate numbers/letters drawn on the board)
     const cvs = document.getElementById('goCanvas'), ctx = cvs.getContext('2d');
 
+    // 바둑판(#boardFrame)의 실제 가로 픽셀 폭과 하단 긴 [착수] 버튼(#extBar) 및 상단 바의 가로폭을 100% 동일하게 동기화
+    function syncBoardControlsWidth() {
+      const bf = document.getElementById('boardFrame');
+      if (!bf) return;
+      const w = bf.offsetWidth;
+      if (w > 0) {
+        const ext = document.getElementById('extBar');
+        const topW = document.getElementById('topControlWrap');
+        const specB = document.getElementById('specBar');
+        if (ext) ext.style.width = `${w}px`;
+        if (topW) topW.style.width = `${w}px`;
+        if (specB) specB.style.width = `${w}px`;
+      }
+    }
+
     function resizeCanvas() {
       const rect = cvs.parentElement.getBoundingClientRect();
       if (!rect.width) return;
       const dpr = window.devicePixelRatio || 1, sz = Math.floor(Math.min(rect.width, rect.height));
       cvs.width = sz * dpr; cvs.height = sz * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      syncBoardControlsWidth();
       drawBoard();
     }
 
@@ -1885,16 +1899,17 @@
 
       if (!isSpectator()) {
         const btnPlace = document.getElementById('btnPlace');
-        const coordBadge = document.getElementById('coordBadge');
-        const extTitle = document.getElementById('extTitle');
+        const btnPlaceText = document.getElementById('btnPlaceText');
         if (pending && canPlayNow()) {
           const cStr = coordToNotation(pending.r, pending.c);
-          coordBadge.textContent = cStr;
-          extTitle.textContent = `선택: ${cStr} — [착수]를 누르세요`;
+          if (btnPlaceText) btnPlaceText.textContent = `착수 (${cStr})`;
           btnPlace.disabled = false;
         } else {
-          coordBadge.innerHTML = '<i class="fa-solid fa-crosshairs"></i>';
-          extTitle.textContent = scoring ? '반상의 죽은 돌(사석)을 클릭해 지정하세요' : (canPlayNow() ? '바둑판에서 착수할 교차점을 선택하세요' : '상대방의 착수를 기다리는 중...');
+          if (btnPlaceText) {
+            btnPlaceText.textContent = scoring
+              ? '반상의 죽은 돌(사석)을 클릭해 지정하세요'
+              : (canPlayNow() ? '착수 (바둑판 교차점을 선택하세요)' : '착수 (상대방 차례 대기 중)');
+          }
           btnPlace.disabled = true;
         }
       }
@@ -1950,16 +1965,35 @@
     }
 
     // =========================================================================
-    // PWA ICON NORMALIZER (icon.ico, icon.png) & ZERO-DELAY UPDATE ENGINE
+    // PWA ICON NORMALIZER (icon.ico 256x256, icon.png 289x289) & ZERO-DELAY UPDATE
     // =========================================================================
     let deferredPwaPrompt = null;
     let pwaBannerDismissed = false;
     let initialHtmlSignature = null;
 
-    // 사용자의 ./icon.png 원본 해상도가 192x192 또는 512x512가 아니더라도
-    // 캔버스로 정확한 규격 이미지를 생성해 iOS/Android 아이콘 누락을 방지하되,
-    // ./manifest.json 연결은 절대 덮어쓰지 않고 유지(단, fetch 실패 시에만 폴백)
-    function normalizeUserIconsAndManifest() {
+    // icon.png(289x289) 및 icon.ico(256x256)를 로드하여 크롬/안드로이드/iOS가 요구하는
+    // 정확한 192x192, 512x512, 180x180 PNG 규격으로 실시간 리샘플링하고
+    // manifest.json의 상대 경로를 모두 절대 URL + 리샘플링된 아이콘과 결합하여 주입합니다.
+    function resolveSafeAssetUrl(relPath) {
+      try {
+        if (location.protocol === 'http:' || location.protocol === 'https:') {
+          return new URL(relPath, location.href).href;
+        }
+        if (location.origin && location.origin !== 'null') {
+          return location.origin.replace(/\/$/, '') + '/' + relPath.replace(/^\.?\//, '');
+        }
+      } catch (e) {}
+      return relPath;
+    }
+
+    function ensurePwaIconCompatibility() {
+      if (location.protocol === 'blob:' || location.protocol === 'file:') return;
+
+      const absPngUrl = resolveSafeAssetUrl('./icon.png');
+      const absIcoUrl = resolveSafeAssetUrl('./icon.ico');
+      const absStartUrl = resolveSafeAssetUrl('./index.html');
+      const absScopeUrl = resolveSafeAssetUrl('./');
+
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = async () => {
@@ -1968,6 +2002,8 @@
             const c = document.createElement('canvas');
             c.width = sz; c.height = sz;
             const cx = c.getContext('2d');
+            cx.imageSmoothingEnabled = true;
+            cx.imageSmoothingQuality = 'high';
             cx.drawImage(img, 0, 0, sz, sz);
             return c.toDataURL('image/png');
           };
@@ -1976,33 +2012,45 @@
           const png512 = makeSizedPng(512);
 
           const appleLink = document.getElementById('apple-touch-icon-link');
-          if (appleLink) appleLink.href = png180;
+          if (appleLink) { appleLink.sizes = '180x180'; appleLink.href = png180; }
+          const link192 = document.getElementById('icon-192-link');
+          if (link192) link192.href = png192;
+          const link512 = document.getElementById('icon-512-link');
+          if (link512) link512.href = png512;
 
-          // ./manifest.json 이 정상 존재하는지 확인하고, 없을 때만 동적 매니페스트 폴백
+          let baseManifest = {};
           try {
-            const res = await fetch('./manifest.json', { cache: 'no-store' });
-            if (!res.ok) throw new Error('manifest missing');
-          } catch (err) {
-            const dynManifest = {
-              name: '클라우드 수담(手談) 바둑',
-              short_name: '수담 바둑',
-              start_url: location.href.split('?')[0],
-              scope: './',
-              display: 'standalone',
-              background_color: '#090d16',
-              theme_color: '#0f172a',
-              icons: [
-                { src: png192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-                { src: png512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-              ]
-            };
-            const blob = new Blob([JSON.stringify(dynManifest)], { type: 'application/manifest+json' });
-            const mLink = document.getElementById('pwa-manifest-link');
-            if (mLink) mLink.href = URL.createObjectURL(blob);
-          }
+            const res = await fetch('./manifest.json?_t=' + Date.now(), { cache: 'no-store' });
+            if (res.ok) baseManifest = await res.json();
+          } catch (e) {}
+
+          const mergedManifest = {
+            ...baseManifest,
+            name: baseManifest.name || '클라우드 수담(手談) 바둑',
+            short_name: baseManifest.short_name || '수담 바둑',
+            description: baseManifest.description || '9~19줄 온라인 실시간 바둑 대국 · 관전 · 귀곡사 자동 계가 PWA',
+            start_url: absStartUrl,
+            scope: absScopeUrl,
+            display: baseManifest.display || 'standalone',
+            background_color: baseManifest.background_color || '#090d16',
+            theme_color: baseManifest.theme_color || '#0f172a',
+            icons: [
+              { src: png192, sizes: '192x192', type: 'image/png', purpose: 'any' },
+              { src: png192, sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+              { src: png512, sizes: '512x512', type: 'image/png', purpose: 'any' },
+              { src: png512, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+              { src: absPngUrl, sizes: '289x289', type: 'image/png', purpose: 'any' },
+              { src: absIcoUrl, sizes: '256x256 48x48 32x32 16x16', type: 'image/x-icon' }
+            ]
+          };
+
+          const blob = new Blob([JSON.stringify(mergedManifest)], { type: 'application/manifest+json' });
+          const mLink = document.getElementById('pwa-manifest-link');
+          if (mLink) mLink.href = URL.createObjectURL(blob);
         } catch (e) {}
       };
-      img.src = './icon.png';
+      img.onerror = () => {};
+      img.src = absPngUrl;
     }
 
     function isAppInstalled() {
@@ -2115,7 +2163,7 @@
 
     async function initZeroDelayPwa() {
       await clearAllBrowserCaches();
-      normalizeUserIconsAndManifest();
+      ensurePwaIconCompatibility();
 
       window.addEventListener('beforeinstallprompt', e => {
         e.preventDefault();
@@ -2154,6 +2202,10 @@
       document.getElementById('nicknameInput').value = myName;
       initEmptyBoard(19); initLobby(); checkSavedBanner(); renderRooms();
       initZeroDelayPwa();
+      const bf = document.getElementById('boardFrame');
+      if (bf && 'ResizeObserver' in window) {
+        new ResizeObserver(() => syncBoardControlsWidth()).observe(bf);
+      }
     };
   </script>
 </body>
