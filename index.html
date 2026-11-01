@@ -535,8 +535,8 @@
     let names = { 1: '흑돌', 2: '백돌' }, caps = { 1: 0, 2: 0 };
     let started = false, ended = false, paused = false, scoring = false, previewTerr = false;
     let confirmMode = true, showNumbers = false, pending = null, hover = null;
-    let deadSet = new Set(), sekiSet = new Set(), shapeLabels = [], agreed = { 1: false, 2: false };
-    let timerId = null, specCount = 0;
+    let deadSet = new Set(), sekiSet = new Set(), manualTerr = {}, shapeLabels = [], agreed = { 1: false, 2: false };
+    let timerId = null, specCount = 0, wakeLockSentinel = null;
 
     // 흑(1)과 백(2) 각각의 독립적인 시계 상태 (기본시간 + 초읽기 시간 + 초읽기 횟수)
     let clocks = {
@@ -816,7 +816,7 @@
       board = Array.from({ length: N }, () => Array(N).fill(EMPTY));
       history = []; hashes = [ board.map(r => r.join('')).join('|') ];
       koPoint = null; passes = 0; caps = { 1: 0, 2: 0 };
-      deadSet.clear(); sekiSet.clear(); shapeLabels = []; agreed = { 1: false, 2: false };
+      deadSet.clear(); sekiSet.clear(); manualTerr = {}; shapeLabels = []; agreed = { 1: false, 2: false };
       initClocksFromRoom();
     }
 
@@ -878,7 +878,7 @@
       return {
         type: 'SYNC_STATE', roomInfo, N, board, history, hashes, koPoint, passes,
         turn, gCol, names, caps, clocks, started, ended, paused, scoring,
-        deadArr: Array.from(deadSet), specCount,
+        deadArr: Array.from(deadSet), sekiArr: Array.from(sekiSet), manualTerr, shapeLabels, specCount,
         historyCoords: getKifuString()
       };
     }
@@ -1014,8 +1014,11 @@
         started = d.started; ended = d.ended; paused = d.paused; scoring = d.scoring;
         specCount = d.specCount || 0;
         deadSet = new Set(d.deadArr || []);
+        sekiSet = new Set(d.sekiArr || []);
+        manualTerr = d.manualTerr || {};
+        shapeLabels = d.shapeLabels || [];
         setWaitBanner(!started || paused, paused ? `⏸️ 대국 일시정지 중 (${formatPlayerClockShort(turn)})` : '대국 시작 대기 중...', isSpectator() ? '대국이 시작되면 실시간으로 중계됩니다.' : '잠시만 기다려 주세요.');
-        if (scoring) runAutoLifeDeath(false);
+        if (scoring) { updateScoreBoard(); drawBoard(); }
         else if (started && !paused && !ended) startTimer(false);
         updateSpecCountBadge(); updateUI(); resizeCanvas();
       } else if (d.type === 'SPEC_COUNT') {
@@ -1040,7 +1043,11 @@
         enterScoring(false);
         if (fromGuestToHost) sendToSpectators(d);
       } else if (d.type === 'SYNC_DEAD') {
-        deadSet = new Set(d.deadArr); agreed = { 1: false, 2: false }; updateScoreBoard(); drawBoard();
+        deadSet = new Set(d.deadArr || []);
+        if (d.sekiArr) sekiSet = new Set(d.sekiArr);
+        if (d.manualTerr) manualTerr = d.manualTerr;
+        if (d.shapeLabels) shapeLabels = d.shapeLabels;
+        agreed = { 1: false, 2: false }; updateScoreBoard(); drawBoard();
         if (fromGuestToHost) sendToSpectators(d);
       } else if (d.type === 'RESUME_PLAY') {
         resumeFromScoring(false);
@@ -1134,7 +1141,7 @@
       if (isSpectator() || !started || ended) return;
       localStorage.setItem(SAVE_KEY, JSON.stringify({
         mode, roomInfo: { ...roomInfo, status: 'paused' }, N, board, history, hashes, koPoint, passes,
-        turn, myColor, names, caps, clocks, scoring, deadArr: Array.from(deadSet)
+        turn, myColor, names, caps, clocks, scoring, deadArr: Array.from(deadSet), sekiArr: Array.from(sekiSet), manualTerr
       }));
     }
 
@@ -1159,7 +1166,7 @@
       turn = s.turn; myColor = s.myColor; names = s.names; caps = s.caps;
       roomInfo = { ...s.roomInfo, host: myName };
       if (s.clocks) clocks = s.clocks; else initClocksFromRoom();
-      scoring = s.scoring; deadSet = new Set(s.deadArr || []); started = true; ended = false;
+      scoring = s.scoring; deadSet = new Set(s.deadArr || []); sekiSet = new Set(s.sekiArr || []); manualTerr = s.manualTerr || {}; started = true; ended = false;
       if (s.mode === 'local') {
         mode = 'local'; paused = false; showGameView(); setWaitBanner(false);
         if (!scoring) startTimer(false); updateUI(); drawBoard();
@@ -1294,7 +1301,7 @@
 
     // Bent Four in the Corner (귀곡사) + Special Eye Shapes + Seki (빅) Detector
     function runAutoLifeDeath(notify = false) {
-      deadSet.clear(); sekiSet.clear(); shapeLabels = [];
+      deadSet.clear(); sekiSet.clear(); manualTerr = {}; shapeLabels = [];
       const vis = new Set(), chains = [];
 
       for (let r = 0; r < N; r++) {
@@ -1434,7 +1441,7 @@
       else alertEl.classList.add('hidden');
 
       updateScoreBoard(); drawBoard();
-      if (notify && !isSpectator() && mode !== 'local') sendGameAction({ type: 'SYNC_DEAD', deadArr: Array.from(deadSet) });
+      if (notify && !isSpectator() && mode !== 'local') sendGameAction({ type: 'SYNC_DEAD', deadArr: Array.from(deadSet), sekiArr: Array.from(sekiSet), manualTerr, shapeLabels });
     }
 
     function computeScore() {
@@ -1461,13 +1468,18 @@
           if (borders.size === 1) {
             const owner = Array.from(borders)[0];
             reg.forEach(([er, ec]) => {
-              if (!sekiSet.has(`${er},${ec}`)) {
-                terrMap[er][ec] = owner;
-                owner === BLACK ? terrB++ : terrW++;
-              }
+              if (!sekiSet.has(`${er},${ec}`)) terrMap[er][ec] = owner;
             });
           }
         }
+      }
+      for (const [k, owner] of Object.entries(manualTerr)) {
+        const [mr, mc] = k.split(',').map(Number);
+        if (eff[mr] && eff[mr][mc] === EMPTY) terrMap[mr][mc] = owner;
+      }
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+        if (terrMap[r][c] === BLACK) terrB++;
+        else if (terrMap[r][c] === WHITE) terrW++;
       }
       const isCn = roomInfo.rule === 'chinese', komi = isCn ? 7.5 : 6.5;
       const totB = isCn ? terrB + liveB : terrB + caps[BLACK] + deadW;
@@ -1482,7 +1494,7 @@
       document.getElementById('scoringBtns').classList.toggle('hidden', !scoring || isSpectator());
       document.getElementById('scoringHintText').textContent = isSpectator()
         ? '관전 모드에서는 대국자들의 사석 지정 및 계가 현황을 실시간으로 확인합니다.'
-        : '바둑판의 돌을 클릭해 사석(X)을 직접 수정할 수 있으며, 이견이 있으면 [⚔️ 대국 재개]로 실전 해결하세요.';
+        : '돌 클릭: 사석(X) 지정 및 빅 해제 | 빈 곳(집 자리) 클릭: 빅 판정을 무효화하고 직접 집(⚫흑집→⚪백집→⬜해제)을 지정합니다.';
       const s = computeScore();
       document.getElementById('totBlack').textContent = `${s.totB}집`;
       document.getElementById('totWhite').textContent = `${s.totW}집`;
@@ -1508,7 +1520,7 @@
     }
 
     function resumeFromScoring(send = true) {
-      scoring = false; passes = 0; deadSet.clear(); shapeLabels = [];
+      scoring = false; passes = 0; deadSet.clear(); sekiSet.clear(); manualTerr = {}; shapeLabels = [];
       if (send && !isSpectator() && mode !== 'local') sendGameAction({ type: 'RESUME_PLAY' });
       startTimer(false); updateUI(); updateScoreBoard(); drawBoard();
       toast('⚔️ 대국이 재개되었습니다! 실전 착수로 생사를 해결하세요.');
@@ -1857,14 +1869,33 @@
       if (isSpectator()) { toast('👁️ 관전 모드에서는 바둑판을 조작할 수 없습니다.'); return; }
       const pt = pointerCell(e); if (!pt) return;
       if (scoring) {
+        const key = `${pt.r},${pt.c}`;
         if (board[pt.r][pt.c] !== EMPTY) {
-          const g = getGroup(board, pt.r, pt.c), key = `${pt.r},${pt.c}`, mark = !deadSet.has(key);
-          g.stones.forEach(([sr, sc]) => mark ? deadSet.add(`${sr},${sc}`) : deadSet.delete(`${sr},${sc}`));
-          agreed = { 1: false, 2: false }; updateScoreBoard(); drawBoard();
-          if (mode !== 'local') sendGameAction({ type: 'SYNC_DEAD', deadArr: Array.from(deadSet) });
+          const g = getGroup(board, pt.r, pt.c), mark = !deadSet.has(key);
+          g.stones.forEach(([sr, sc]) => {
+            mark ? deadSet.add(`${sr},${sc}`) : deadSet.delete(`${sr},${sc}`);
+            delete manualTerr[`${sr},${sc}`];
+          });
+          // 해당 돌과 맞닿은 빅(공생) 판정을 모두 무효화하여 정상 집으로 계산되게 함
+          g.libs.forEach(lk => {
+            sekiSet.delete(lk);
+            const [lr, lc] = lk.split(',').map(Number);
+            neighbors(lr, lc).forEach(([nr, nc]) => {
+              if (board[nr][nc] !== EMPTY) getGroup(board, nr, nc).libs.forEach(olk => sekiSet.delete(olk));
+            });
+          });
+          shapeLabels = shapeLabels.filter(lb => !(lb.text.includes('빅') && g.stones.some(([sr, sc]) => Math.abs(sr - lb.r) + Math.abs(sc - lb.c) <= 3)));
+        } else {
+          // 빈 교차점 클릭 시: 빅 판정 무효화 후 [흑집 -> 백집 -> 집 없음(공배)] 순환 지정
+          sekiSet.delete(key);
+          shapeLabels = shapeLabels.filter(lb => !(lb.text.includes('빅') && Math.abs(pt.r - lb.r) + Math.abs(pt.c - lb.c) <= 3));
+          const curOwner = computeScore().terrMap[pt.r][pt.c];
+          const nextOwner = curOwner === EMPTY ? BLACK : (curOwner === BLACK ? WHITE : EMPTY);
+          manualTerr[key] = nextOwner;
+          toast(nextOwner === BLACK ? '⚫ 흑집으로 직접 지정됨 (재클릭: 백집/해제)' : (nextOwner === WHITE ? '⚪ 백집으로 직접 지정됨 (재클릭: 해제)' : '⬜ 집 지정 해제 (공배)'));
         }
-        return;
-      }
+        agreed = { 1: false, 2: false }; updateScoreBoard(); drawBoard();
+        if (mode !== 'local') sendGameAction({ type: 'SYNC_DEAD', deadArr: Array.from(deadSet), sekiArr: Array.from(sekiSet), manualTerr, shapeLabels });
       if (!canPlayNow()) { toast(paused ? '일시정지 상태입니다.' : '상대방 차례입니다.'); return; }
       const v = validateMove(pt.r, pt.c, turn);
       if (!v.ok) { toast(v.msg); return; }
@@ -2017,36 +2048,6 @@
           if (link192) link192.href = png192;
           const link512 = document.getElementById('icon-512-link');
           if (link512) link512.href = png512;
-
-          let baseManifest = {};
-          try {
-            const res = await fetch('./manifest.json?_t=' + Date.now(), { cache: 'no-store' });
-            if (res.ok) baseManifest = await res.json();
-          } catch (e) {}
-
-          const mergedManifest = {
-            ...baseManifest,
-            name: baseManifest.name || '클라우드 수담(手談) 바둑',
-            short_name: baseManifest.short_name || '수담 바둑',
-            description: baseManifest.description || '9~19줄 온라인 실시간 바둑 대국 · 관전 · 귀곡사 자동 계가 PWA',
-            start_url: absStartUrl,
-            scope: absScopeUrl,
-            display: baseManifest.display || 'standalone',
-            background_color: baseManifest.background_color || '#090d16',
-            theme_color: baseManifest.theme_color || '#0f172a',
-            icons: [
-              { src: png192, sizes: '192x192', type: 'image/png', purpose: 'any' },
-              { src: png192, sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-              { src: png512, sizes: '512x512', type: 'image/png', purpose: 'any' },
-              { src: png512, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-              { src: absPngUrl, sizes: '289x289', type: 'image/png', purpose: 'any' },
-              { src: absIcoUrl, sizes: '256x256 48x48 32x32 16x16', type: 'image/x-icon' }
-            ]
-          };
-
-          const blob = new Blob([JSON.stringify(mergedManifest)], { type: 'application/manifest+json' });
-          const mLink = document.getElementById('pwa-manifest-link');
-          if (mLink) mLink.href = URL.createObjectURL(blob);
         } catch (e) {}
       };
       img.onerror = () => {};
@@ -2161,16 +2162,39 @@
       } catch (e) {}
     }
 
+    async function requestScreenWakeLock() {
+      if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+      try {
+        if (wakeLockSentinel && !wakeLockSentinel.released) return;
+        wakeLockSentinel = await navigator.wakeLock.request('screen');
+        wakeLockSentinel.addEventListener('release', () => { wakeLockSentinel = null; });
+      } catch (e) {}
+    }
+
+    // 비동기 함수(await) 실행 전에 최상단에서 즉시 설치 이벤트를 포착하여 절대 놓치지 않도록 처리
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredPwaPrompt = e;
+      localStorage.removeItem('baduk_pwa_installed');
+      updatePwaInstallUI();
+      // 미설치 상태에서 화면 첫 터치/클릭 시 네이티브 앱 설치 창 자동 호출
+      if (!sessionStorage.getItem('baduk_auto_prompt_shown')) {
+        const autoTrigger = async () => {
+          if (!deferredPwaPrompt || sessionStorage.getItem('baduk_auto_prompt_shown')) return;
+          sessionStorage.setItem('baduk_auto_prompt_shown', '1');
+          await triggerPwaInstall();
+        };
+        window.addEventListener('pointerup', autoTrigger, { once: true });
+      }
+    });
+
     async function initZeroDelayPwa() {
+      requestScreenWakeLock();
+      document.addEventListener('pointerdown', requestScreenWakeLock, { passive: true });
+      document.addEventListener('touchstart', requestScreenWakeLock, { passive: true });
+
       await clearAllBrowserCaches();
       ensurePwaIconCompatibility();
-
-      window.addEventListener('beforeinstallprompt', e => {
-        e.preventDefault();
-        deferredPwaPrompt = e;
-        localStorage.removeItem('baduk_pwa_installed');
-        updatePwaInstallUI();
-      });
 
       window.addEventListener('appinstalled', () => {
         deferredPwaPrompt = null;
@@ -2188,6 +2212,7 @@
 
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
+          requestScreenWakeLock();
           clearAllBrowserCaches();
           checkLiveCodeUpdate();
         }
