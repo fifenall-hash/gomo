@@ -1,16 +1,20 @@
-// sw.js - Zero-Delay Network-First Service Worker
+// sw.js - Zero-Delay Network-First Service Worker + Dynamic PNG Icon Resizer
 self.addEventListener('install', (event) => {
-  // 새 서비스 워커 발견 즉시 대기 상태를 건너뛰고 활성화
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  // 기존에 남아있을 수 있는 모든 브라우저 캐시 스토리지 완전 삭제 후 즉시 제어권 획득
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((key) => caches.delete(key)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+      .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
@@ -19,20 +23,27 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
+  // icon.png(289x289)를 크롬 WebAPK 설치 규격인 정밀한 192x192 / 512x512 PNG로 실시간 리샘플링
   if (url.origin === self.location.origin && url.pathname.endsWith('/icon.png') && url.searchParams.has('size')) {
     const sz = parseInt(url.searchParams.get('size'), 10) || 192;
     event.respondWith((async () => {
       try {
-        const res = await fetch('./icon.png', { cache: 'no-store' });
+        const cleanIconUrl = new URL('./icon.png', self.location.href).href;
+        const res = await fetch(cleanIconUrl, { cache: 'no-cache' });
         const blob = await res.blob();
         if (typeof OffscreenCanvas !== 'undefined' && typeof createImageBitmap !== 'undefined') {
           const bmp = await createImageBitmap(blob);
           const canvas = new OffscreenCanvas(sz, sz);
           const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, sz, sz);
           ctx.drawImage(bmp, 0, 0, sz, sz);
           const outBlob = await canvas.convertToBlob({ type: 'image/png' });
           return new Response(outBlob, {
-            headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' }
+            status: 200,
+            headers: {
+              'Content-Type': 'image/png',
+              'Cache-Control': 'no-cache'
+            }
           });
         }
         return res;
@@ -43,7 +54,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // GitHub Pages의 자체 파일(index.html, manifest.json 등)은 캐시를 완전히 무시하고 최신 서버 응답 직결
+  // 자체 파일(index.html, manifest.json 등)은 항상 최신 서버 응답 직결
   if (url.origin === self.location.origin) {
     event.respondWith(
       fetch(req, { cache: 'no-store' }).catch(() => fetch(req))
