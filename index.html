@@ -1896,6 +1896,8 @@
         }
         agreed = { 1: false, 2: false }; updateScoreBoard(); drawBoard();
         if (mode !== 'local') sendGameAction({ type: 'SYNC_DEAD', deadArr: Array.from(deadSet), sekiArr: Array.from(sekiSet), manualTerr, shapeLabels });
+        return;
+      }
       if (!canPlayNow()) { toast(paused ? '일시정지 상태입니다.' : '상대방 차례입니다.'); return; }
       const v = validateMove(pt.r, pt.c, turn);
       if (!v.ok) { toast(v.msg); return; }
@@ -2055,16 +2057,10 @@
     }
 
     function isAppInstalled() {
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                           window.matchMedia('(display-mode: fullscreen)').matches ||
-                           window.navigator.standalone === true ||
-                           document.referrer.includes('android-app://');
-      if (isStandalone) {
-        localStorage.setItem('baduk_pwa_installed', '1');
-        return true;
-      }
-      if (deferredPwaPrompt) return false;
-      return localStorage.getItem('baduk_pwa_installed') === '1';
+      return window.matchMedia('(display-mode: standalone)').matches ||
+             window.matchMedia('(display-mode: fullscreen)').matches ||
+             window.navigator.standalone === true ||
+             document.referrer.includes('android-app://');
     }
 
     function updatePwaInstallUI() {
@@ -2082,15 +2078,17 @@
 
     async function triggerPwaInstall() {
       if (deferredPwaPrompt) {
+        const promptEvent = deferredPwaPrompt;
+        deferredPwaPrompt = null;
         try {
-          deferredPwaPrompt.prompt();
-          const { outcome } = await deferredPwaPrompt.userChoice;
+          await promptEvent.prompt();
+          const { outcome } = await promptEvent.userChoice;
           if (outcome === 'accepted') {
-            deferredPwaPrompt = null;
-            localStorage.setItem('baduk_pwa_installed', '1');
-            toast('🎉 수담 바둑 앱 설치가 완료되었습니다!');
+            toast('🎉 수담 바둑 앱 설치가 시작되었습니다! 홈 화면을 확인해 주세요.');
           }
-        } catch (e) {}
+        } catch (e) {
+          document.getElementById('pwaModal').classList.remove('hidden');
+        }
         updatePwaInstallUI();
       } else {
         document.getElementById('pwaModal').classList.remove('hidden');
@@ -2141,7 +2139,8 @@
       if (!('serviceWorker' in navigator)) return;
       if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
       try {
-        const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+        const hadController = !!navigator.serviceWorker.controller;
+        const reg = await navigator.serviceWorker.register('./sw.js', { scope: './', updateViaCache: 'none' });
         reg.update().catch(() => {});
         if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
         reg.addEventListener('updatefound', () => {
@@ -2152,10 +2151,21 @@
             }
           });
         });
+
+        await navigator.serviceWorker.ready;
+        // 서비스 워커가 제어권을 잡은 직후 매니페스트를 다시 연결해 192/512 PNG 아이콘을 sw.js 경유로 인식시킴
+        const mLink = document.getElementById('pwa-manifest-link');
+        if (mLink) mLink.href = './manifest.json?v=' + Date.now();
+
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
           if (refreshing) return;
           refreshing = true;
+          if (!hadController) {
+            const ml = document.getElementById('pwa-manifest-link');
+            if (ml) ml.href = './manifest.json?v=' + Date.now();
+            return;
+          }
           if (started && !ended && !isSpectator()) saveMatch();
           location.reload();
         });
@@ -2171,24 +2181,24 @@
       } catch (e) {}
     }
 
-    // 비동기 함수(await) 실행 전에 최상단에서 즉시 설치 이벤트를 포착하여 절대 놓치지 않도록 처리
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       deferredPwaPrompt = e;
-      localStorage.removeItem('baduk_pwa_installed');
       updatePwaInstallUI();
-      // 미설치 상태에서 화면 첫 터치/클릭 시 네이티브 앱 설치 창 자동 호출
+      // 미설치 상태에서 설치 버튼 외의 화면 첫 클릭 시 네이티브 설치 창 1회 자동 호출
       if (!sessionStorage.getItem('baduk_auto_prompt_shown')) {
-        const autoTrigger = async () => {
+        const autoTrigger = async (ev) => {
           if (!deferredPwaPrompt || sessionStorage.getItem('baduk_auto_prompt_shown')) return;
           sessionStorage.setItem('baduk_auto_prompt_shown', '1');
+          if (ev.target && ev.target.closest && ev.target.closest('[onclick*="triggerPwaInstall"]')) return;
           await triggerPwaInstall();
         };
-        window.addEventListener('pointerup', autoTrigger, { once: true });
+        window.addEventListener('click', autoTrigger, { once: true });
       }
     });
 
     async function initZeroDelayPwa() {
+      updatePwaInstallUI();
       requestScreenWakeLock();
       document.addEventListener('pointerdown', requestScreenWakeLock, { passive: true });
       document.addEventListener('touchstart', requestScreenWakeLock, { passive: true });
@@ -2198,7 +2208,6 @@
 
       window.addEventListener('appinstalled', () => {
         deferredPwaPrompt = null;
-        localStorage.setItem('baduk_pwa_installed', '1');
         updatePwaInstallUI();
         toast('✅ 앱이 성공적으로 설치되었습니다!');
       });
