@@ -19,6 +19,30 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
+  if (url.origin === self.location.origin && url.pathname.endsWith('/icon.png') && url.searchParams.has('size')) {
+    const sz = parseInt(url.searchParams.get('size'), 10) || 192;
+    event.respondWith((async () => {
+      try {
+        const res = await fetch('./icon.png', { cache: 'no-store' });
+        const blob = await res.blob();
+        if (typeof OffscreenCanvas !== 'undefined' && typeof createImageBitmap !== 'undefined') {
+          const bmp = await createImageBitmap(blob);
+          const canvas = new OffscreenCanvas(sz, sz);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(bmp, 0, 0, sz, sz);
+          const outBlob = await canvas.convertToBlob({ type: 'image/png' });
+          return new Response(outBlob, {
+            headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' }
+          });
+        }
+        return res;
+      } catch (e) {
+        return fetch(req);
+      }
+    })());
+    return;
+  }
+
   // GitHub Pages의 자체 파일(index.html, manifest.json 등)은 캐시를 완전히 무시하고 최신 서버 응답 직결
   if (url.origin === self.location.origin) {
     event.respondWith(
