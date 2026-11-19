@@ -162,7 +162,7 @@
   <!-- VIEW 2: 모바일 1화면 최적화 대국실 & 말풍선 채팅 통합 UI -->
   <main id="gameView" class="hidden fixed inset-0 z-40 h-[100dvh] w-full bg-gradient-to-b from-slate-900 to-[#090d16] flex flex-col items-center justify-between px-2 py-1.5 gap-1.5 overflow-hidden">
 
-    <!-- 상단 통합 영역: 규칙/관전자/대기실로 + 대국자 정보(따낸돌·전적·시계·말풍선) + 5대 조작 버튼 -->
+    <!-- 상단 통합 영역: 규칙/관전자/대기실로 + 대국자 정보(따낸돌·n승·시계) + 말풍선 전용 1줄 + 5대 조작 버튼 -->
     <div id="topControlWrap" class="w-full max-w-[560px] flex flex-col gap-1 shrink-0">
 
       <!-- 1행: 규칙 배지 + 관전자(0명이면 숨김) + 효과음 + 대기실로 -->
@@ -195,7 +195,7 @@
         </div>
       </div>
 
-      <!-- 2행: 타이머 상태바 + 흑/백 통합 대국자 정보(닉네임·전적·따낸돌·시계·말풍선) -->
+      <!-- 2행: 타이머 상태바 + 흑/백 통합 대국자 정보(닉네임·n승·따낸돌·시계) -->
       <div class="w-full bg-slate-900/95 border border-slate-700 rounded-xl px-2 py-1.5 shadow space-y-1">
         <div class="flex items-center justify-between text-[11px] gap-1.5">
           <div class="flex items-center gap-1.5 min-w-0">
@@ -215,7 +215,7 @@
 
         <!-- 흑/백 통합 대국자 정보 카드 -->
         <div class="grid grid-cols-2 gap-1.5 pt-0.5">
-          <!-- 흑돌 정보 + 말풍선 -->
+          <!-- 흑돌 정보 -->
           <div id="topStripBlack" class="relative bg-slate-950/95 border-2 border-slate-800 rounded-lg px-2 py-1 transition">
             <div class="flex items-center gap-1.5 min-w-0">
               <span class="w-3 h-3 rounded-full bg-slate-900 border border-slate-400 shrink-0"></span>
@@ -225,14 +225,9 @@
               <span id="capBlack" class="text-amber-300 font-semibold shrink-0">사석 0</span>
               <span id="topClockBlack" class="font-mono font-bold text-slate-200 truncate">05:00 + 30초×3</span>
             </div>
-            <!-- 흑 대국자 말풍선 -->
-            <div id="bubbleBlack" class="hidden chat-bubble pointer-events-none absolute left-1 top-full mt-2 z-40 max-w-[230px] bg-amber-400 text-slate-950 text-xs font-extrabold px-3 py-1.5 rounded-2xl shadow-2xl border-2 border-amber-200 break-words">
-              <span class="absolute -top-1.5 left-4 w-3 h-3 bg-amber-400 border-l-2 border-t-2 border-amber-200 rotate-45"></span>
-              <span id="bubbleBlackText" class="relative z-10"></span>
-            </div>
           </div>
 
-          <!-- 백돌 정보 + 말풍선 -->
+          <!-- 백돌 정보 -->
           <div id="topStripWhite" class="relative bg-slate-950/95 border-2 border-slate-800 rounded-lg px-2 py-1 transition">
             <div class="flex items-center gap-1.5 min-w-0">
               <span class="w-3 h-3 rounded-full bg-white border border-slate-400 shrink-0"></span>
@@ -242,12 +237,19 @@
               <span id="capWhite" class="text-sky-300 font-semibold shrink-0">사석 0</span>
               <span id="topClockWhite" class="font-mono font-bold text-slate-200 truncate">05:00 + 30초×3</span>
             </div>
-            <!-- 백 대국자 말풍선 -->
-            <div id="bubbleWhite" class="hidden chat-bubble pointer-events-none absolute right-1 top-full mt-2 z-40 max-w-[230px] bg-sky-400 text-slate-950 text-xs font-extrabold px-3 py-1.5 rounded-2xl shadow-2xl border-2 border-sky-200 break-words">
-              <span class="absolute -top-1.5 right-4 w-3 h-3 bg-sky-400 border-l-2 border-t-2 border-sky-200 rotate-45"></span>
-              <span id="bubbleWhiteText" class="relative z-10"></span>
-            </div>
           </div>
+        </div>
+      </div>
+
+      <!-- 말풍선 전용 빈 1줄 (버튼 가림 방지) -->
+      <div id="bubbleLane" class="relative flex items-center justify-between gap-2 h-7 px-1 shrink-0">
+        <div id="bubbleBlack" class="hidden chat-bubble relative min-w-0 max-w-[85%] bg-amber-400 text-slate-950 text-[11px] font-extrabold px-2.5 py-0.5 rounded-xl shadow border border-amber-200">
+          <span class="absolute -top-1 left-4 w-2 h-2 bg-amber-400 border-l border-t border-amber-200 rotate-45"></span>
+          <span id="bubbleBlackText" class="relative z-10 block truncate"></span>
+        </div>
+        <div id="bubbleWhite" class="hidden chat-bubble relative ml-auto min-w-0 max-w-[85%] bg-sky-400 text-slate-950 text-[11px] font-extrabold px-2.5 py-0.5 rounded-xl shadow border border-sky-200">
+          <span class="absolute -top-1 right-4 w-2 h-2 bg-sky-400 border-l border-t border-sky-200 rotate-45"></span>
+          <span id="bubbleWhiteText" class="relative z-10 block truncate"></span>
         </div>
       </div>
 
@@ -473,6 +475,7 @@
     const COL_LABELS = "ABCDEFGHJKLMNOPQRST";
     const LOBBY_TOPIC = 'baduk_kr_lobby_2026_v5/rooms';
     const SAVE_KEY = 'baduk_paused_match_v5';
+    const ROOM_CFG_KEY = 'baduk_room_cfg_v1';
 
     let myName = localStorage.getItem('baduk_nick') || `기사#${Math.floor(1000+Math.random()*9000)}`;
     let soundOn = true, audioCtx = null;
@@ -702,12 +705,53 @@
       });
     }
 
+    // Room Config Persistence (앱 재실행 시에도 마지막 설정 유지)
+    function saveRoomConfig() {
+      try {
+        const titleEl = document.getElementById('roomTitleInput');
+        const payload = {
+          ...cfg,
+          title: titleEl ? titleEl.value.trim() : ''
+        };
+        localStorage.setItem(ROOM_CFG_KEY, JSON.stringify(payload));
+      } catch (e) {}
+    }
+
+    function loadRoomConfig() {
+      try {
+        const raw = localStorage.getItem(ROOM_CFG_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if ([9, 11, 13, 15, 17, 19].includes(Number(saved.size))) cfg.size = Number(saved.size);
+        if (['random', 'black', 'white'].includes(saved.stone)) cfg.stone = saved.stone;
+        if (['korean', 'chinese'].includes(saved.rule)) cfg.rule = saved.rule;
+        if (['timed', 'unlimited'].includes(saved.timeMode)) cfg.timeMode = saved.timeMode;
+        if (typeof saved.mainSec === 'number' && saved.mainSec >= 0) cfg.mainSec = Math.min(180 * 60 + 59, Math.floor(saved.mainSec));
+        if (typeof saved.byoSec === 'number' && saved.byoSec >= 5) cfg.byoSec = Math.min(300, Math.floor(saved.byoSec));
+        if (typeof saved.byoPeriods === 'number' && saved.byoPeriods >= 1) cfg.byoPeriods = Math.min(20, Math.floor(saved.byoPeriods));
+        const titleEl = document.getElementById('roomTitleInput');
+        if (titleEl && saved.title) titleEl.value = saved.title;
+      } catch (e) {}
+    }
+
+    function applyRoomConfigToModal() {
+      setOpt('size', cfg.size);
+      setOpt('stone', cfg.stone);
+      setOpt('rule', cfg.rule);
+      document.getElementById('inpMainMin').value = Math.floor(cfg.mainSec / 60);
+      document.getElementById('inpMainSec').value = cfg.mainSec % 60;
+      document.getElementById('inpByoSec').value = cfg.byoSec;
+      document.getElementById('inpByoPeriods').value = cfg.byoPeriods;
+      setTimeMode(cfg.timeMode);
+    }
+
     // Room Setup & Custom Direct-Input Timer Modal
     function openRoomModal(target) {
       saveNickname(); modalTarget = target;
+      loadRoomConfig();
+      applyRoomConfigToModal();
       document.getElementById('modalHeader').textContent = target === 'local' ? '1기기 2인 바둑 설정' : '새 온라인 바둑 대국실 만들기';
       document.getElementById('titleRow').classList.toggle('hidden', target === 'local');
-      syncCustomTimePreview();
       document.getElementById('roomModal').classList.remove('hidden');
     }
 
@@ -758,6 +802,7 @@
 
     function submitRoomModal() {
       readCustomTimerInputs();
+      saveRoomConfig();
       document.getElementById('roomModal').classList.add('hidden');
       if (modalTarget === 'local') startLocalMatch();
       else createHostRoom();
@@ -1551,8 +1596,7 @@
       const gw = roomInfo.guestWins || 0;
       const isHostCol = (roomInfo.lastHostCol || BLACK) === col;
       const w = isHostCol ? hw : gw;
-      const l = isHostCol ? gw : hw;
-      return `${w}승 ${l}패`;
+      return `${w}승`;
     }
 
     function finalizeScoreGame() {
@@ -2281,7 +2325,8 @@
     window.addEventListener('resize', resizeCanvas);
     window.onload = () => {
       document.getElementById('nicknameInput').value = myName;
-      initEmptyBoard(19); initLobby(); checkSavedBanner(); renderRooms();
+      loadRoomConfig();
+      initEmptyBoard(cfg.size); initLobby(); checkSavedBanner(); renderRooms();
       initZeroDelayPwa();
       const slot = document.getElementById('boardSlot');
       if (slot && 'ResizeObserver' in window) {
