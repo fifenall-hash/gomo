@@ -268,7 +268,7 @@
       <div id="boardFrame" class="relative board-frame rounded-2xl p-1 flex items-center justify-center">
         <canvas id="goCanvas"></canvas>
 
-        <!-- 대국 결과 / 신청 모달 오버레이 -->
+        <!-- 대국 결과 / 신청 / 재대국 돌 선택 모달 오버레이 -->
         <div id="boardOverlay" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm rounded-2xl z-20 flex items-center justify-center p-4">
           <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-4 text-center shadow-2xl space-y-3">
             <h3 id="ovTitle" class="text-base font-black text-amber-400">대국 결과</h3>
@@ -354,9 +354,9 @@
       </div>
 
       <div class="space-y-1">
-        <label class="text-xs font-bold text-slate-300">돌 선택 <span class="text-amber-300 font-semibold">(무작위: 첫 판 무작위 결정 후 매 판 흑/백 번갈아 진행)</span></label>
+        <label class="text-xs font-bold text-slate-300">돌 선택 <span class="text-amber-300 font-semibold">(재대국 시 매 판 무작위·전과동·교대 다시 선택 가능)</span></label>
         <div class="grid grid-cols-3 gap-2" id="stoneBtns">
-          <button type="button" onclick="setOpt('stone','random')" data-val="random" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300 opt-active">🎲 무작위·교대(기본)</button>
+          <button type="button" onclick="setOpt('stone','random')" data-val="random" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300 opt-active">🎲 무작위(기본)</button>
           <button type="button" onclick="setOpt('stone','black')" data-val="black" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">⚫ 흑돌(선공)</button>
           <button type="button" onclick="setOpt('stone','white')" data-val="white" class="py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-bold text-slate-300">⚪ 백돌(덤)</button>
         </div>
@@ -1103,26 +1103,41 @@
       assignColorsAndStart();
     }
 
-    function assignColorsAndStart() {
+    function openRematchStoneSelect() {
+      const prevCol = myColor;
+      const blackLabel = prevCol === BLACK ? '⚫ 흑(전과동)' : '⚫ 흑(교대)';
+      const whiteLabel = prevCol === WHITE ? '⚪ 백(전과동)' : '⚪ 백(교대)';
+      const prevStr = prevCol === BLACK ? '흑돌' : '백돌';
+      const desc = mode === 'local'
+        ? `직전 대국에서 ${roomInfo.host}님이 ${prevStr}이었습니다.\n재대국 돌을 선택해 주세요.`
+        : `직전 대국을 ${prevStr}으로 마치셨습니다.\n재대국 돌을 선택해 주세요.`;
+      showOverlay('🔄 재대국 돌 선택', desc, [
+        { label: '🎲 무작위', primary: true, fn: () => { closeOverlay(); assignColorsAndStart('random'); } },
+        { label: blackLabel, fn: () => { closeOverlay(); assignColorsAndStart(BLACK); } },
+        { label: whiteLabel, fn: () => { closeOverlay(); assignColorsAndStart(WHITE); } },
+        { label: '대기실로', fn: () => leaveToLobby() }
+      ]);
+    }
+
+    function assignColorsAndStart(choice = null) {
       let hCol = BLACK;
-      let isAlternated = false;
-      if (roomInfo.stone === 'white') {
-        hCol = WHITE;
-      } else if (roomInfo.stone === 'random') {
-        if (roomInfo.lastHostCol) {
-          hCol = roomInfo.lastHostCol === BLACK ? WHITE : BLACK;
-          isAlternated = true;
-        } else {
-          hCol = Math.random() < 0.5 ? BLACK : WHITE;
-        }
+      let msgPrefix = '🎲 돌가르기 완료';
+      if (choice === 'random') {
+        hCol = Math.random() < 0.5 ? BLACK : WHITE;
+        msgPrefix = '🎲 재대국 무작위 결정';
+      } else if (choice === BLACK || choice === WHITE) {
+        const prevMyCol = myColor;
+        hCol = mode === 'join' ? (choice === BLACK ? WHITE : BLACK) : choice;
+        msgPrefix = choice === prevMyCol ? '♻️ 재대국 돌 결정(전과동)' : '🔄 재대국 돌 결정(교대)';
+      } else {
+        if (roomInfo.stone === 'white') hCol = WHITE;
+        else if (roomInfo.stone === 'random') hCol = Math.random() < 0.5 ? BLACK : WHITE;
       }
       roomInfo.lastHostCol = hCol;
       const gCol = hCol === BLACK ? WHITE : BLACK;
       myColor = mode === 'join' ? gCol : hCol;
       names = { [hCol]: roomInfo.host, [gCol]: roomInfo.guest };
-      const msg = isAlternated
-        ? `🔄 흑백 교대 완료: 흑(선공) ${names[BLACK]} vs 백(덤) ${names[WHITE]}`
-        : `🎲 돌가르기 완료: 흑(선공) ${names[BLACK]} vs 백(덤) ${names[WHITE]}`;
+      const msg = `${msgPrefix}: 흑(선공) ${names[BLACK]} vs 백(덤) ${names[WHITE]}`;
       initEmptyBoard(roomInfo.size);
       if (mode === 'host') broadcastFromHost({ type: 'START', roomInfo, gCol, names, msg, specCount });
       else if (mode === 'join' && playerConn && playerConn.open) playerConn.send({ type: 'START', roomInfo, gCol: hCol, names, msg, specCount });
@@ -1606,7 +1621,7 @@
       recordMatchWin(s.win);
       const wName = s.win === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
       const btns = [{ label: '📋 기보 텍스트 복사', fn: () => copyKifuText() }];
-      if (!isSpectator()) btns.push({ label: '새 대국 시작', primary: true, fn: () => { closeOverlay(); assignColorsAndStart(); } });
+      if (!isSpectator()) btns.push({ label: '🔄 재대국', primary: true, fn: () => openRematchStoneSelect() });
       btns.push({ label: '대기실로', fn: () => leaveToLobby() });
       showOverlay(`🏆 ${wName} ${s.diff.toFixed(1)}집 승!`, `⚫ 흑: ${s.totB}집 vs ⚪ 백: ${s.totW}집 (덤 ${s.komi}집)\n최종 결과: ${wName}님이 ${s.diff.toFixed(1)}집 차이로 승리했습니다!\n(현재 전적 — 흑 ${getRecordBadgeText(BLACK)} / 백 ${getRecordBadgeText(WHITE)})`, btns);
       updateScoreBoard(); updateUI(); drawBoard();
@@ -1741,7 +1756,7 @@
       const wStr = win === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
       const lStr = loser === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
       const btns = [{ label: '📋 기보 텍스트 복사', fn: () => copyKifuText() }];
-      if (!isSpectator()) btns.push({ label: '새 대국 시작', primary: true, fn: () => { closeOverlay(); assignColorsAndStart(); } });
+      if (!isSpectator()) btns.push({ label: '🔄 재대국', primary: true, fn: () => openRematchStoneSelect() });
       btns.push({ label: '대기실로', fn: () => leaveToLobby() });
       showOverlay(`⏱️ 시간초과! ${wStr} 시간승!`, `${lStr}님이 마지막 초읽기 시간을 모두 소진하여 즉시 시간패 처리되었습니다.\n(현재 전적 — 흑 ${getRecordBadgeText(BLACK)} / 백 ${getRecordBadgeText(WHITE)})`, btns);
       updateUI();
@@ -1763,7 +1778,7 @@
       recordMatchWin(win);
       const wStr = win === BLACK ? `흑(${names[BLACK]})` : `백(${names[WHITE]})`;
       const btns = [{ label: '📋 기보 텍스트 복사', fn: () => copyKifuText() }];
-      if (!isSpectator()) btns.push({ label: '새 대국 시작', primary: true, fn: () => { closeOverlay(); assignColorsAndStart(); } });
+      if (!isSpectator()) btns.push({ label: '🔄 재대국', primary: true, fn: () => openRematchStoneSelect() });
       btns.push({ label: '대기실로', fn: () => leaveToLobby() });
       showOverlay(`🏳️ ${wStr} 불계승!`, `상대방의 기권 선언으로 ${wStr}님이 불계승을 거두었습니다.\n(현재 전적 — 흑 ${getRecordBadgeText(BLACK)} / 백 ${getRecordBadgeText(WHITE)})`, btns);
       updateUI();
